@@ -204,31 +204,46 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
     if (!Array.isArray(linhas) || linhas.length === 0)
         return res.status(400).json({ erro: 'Nenhuma linha recebida.' });
 
-    const [crimes]  = await pool.query('SELECT id, nome FROM crimes');
-    const [status]  = await pool.query('SELECT id, nome FROM status_pedido ORDER BY ordem');
-    const [varas]   = await pool.query('SELECT id FROM varas   ORDER BY id LIMIT 1');
-    const [cidades] = await pool.query('SELECT id FROM cidades ORDER BY id LIMIT 1');
+    const [tiposPedido] = await pool.query('SELECT id, nome FROM tipos_pedido');
+    const [crimes]      = await pool.query('SELECT id, nome FROM crimes');
+    const [status]      = await pool.query('SELECT id, nome FROM status_pedido ORDER BY ordem');
+    const [varas]       = await pool.query('SELECT id FROM varas   ORDER BY id LIMIT 1');
+    const [cidades]     = await pool.query('SELECT id FROM cidades ORDER BY id LIMIT 1');
 
     const defaultVaraId   = varas[0]?.id   ?? 1;
     const defaultCidadeId = cidades[0]?.id ?? 1;
     const defaultStatusId = status[0]?.id  ?? 1;
     const defaultCrimeId  = crimes[0]?.id  ?? 1;
 
-    function matchNome(lista, nome) {
+    function matchExato(lista, nome) {
         if (!nome) return null;
         const q = nome.toLowerCase().trim();
-        return lista.find(i => i.nome.toLowerCase() === q)?.id
-            ?? lista.find(i => q.includes(i.nome.toLowerCase()) || i.nome.toLowerCase().includes(q))?.id
+        return lista.find(i => i.nome.toLowerCase() === q) ?? null;
+    }
+    function matchNome(lista, nome) {
+        return matchExato(lista, nome)?.id
+            ?? lista.find(i => {
+                const q = (nome ?? '').toLowerCase().trim();
+                const n = i.nome.toLowerCase();
+                return q.includes(n) || n.includes(q);
+            })?.id
             ?? null;
     }
 
-    const resultado = { criados: 0, atualizados: 0, sem_alteracao: 0 };
+    const resultado = { criados: 0, atualizados: 0, sem_alteracao: 0, ignorados: 0 };
     const conn = await pool.getConnection();
     await conn.beginTransaction();
     try {
         for (const l of linhas) {
-            const { numero_processo, data_envio, assunto_principal, situacao } = l;
+            const { numero_processo, data_envio, assunto_principal, situacao, classe } = l;
             if (!numero_processo) continue;
+
+            // Só processa se a Classe corresponder a um tipo de pedido cautelar cadastrado
+            const tipoPedido = matchExato(tiposPedido, classe);
+            if (!tipoPedido) {
+                resultado.ignorados++;
+                continue;
+            }
 
             const crimeId = matchNome(crimes, assunto_principal) ?? defaultCrimeId;
 
@@ -255,7 +270,7 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
                 }
             } else {
                 const statusId = matchNome(status, situacao) ?? defaultStatusId;
-                await conn.query(
+                const [ins] = await conn.query(
                     `INSERT INTO representacoes
                      (numero_processo, numero_ip, vara_id, peticionante, crime_id, cidade_id,
                       qtd_alvos_total, tipo_sigilo, senha_processo,
@@ -266,6 +281,11 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
                         data_envio || new Date().toISOString().slice(0, 10),
                         statusId, req.session.usuario.id,
                     ]
+                );
+                // Insere o tipo de pedido cautelar identificado pela Classe do CSV
+                await conn.query(
+                    'INSERT INTO representacao_pedidos (representacao_id, tipo_pedido_id, qtd_alvos) VALUES (?, ?, 0)',
+                    [ins.insertId, tipoPedido.id]
                 );
                 resultado.criados++;
             }

@@ -144,14 +144,13 @@ INSERT IGNORE INTO cidades (nome) VALUES
     ('Iguatu'),
     ('Quixelô');
 
--- Tipos de Pedido
+-- Tipos de Pedido (nomenclatura do judiciário)
 INSERT IGNORE INTO tipos_pedido (nome) VALUES
-    ('Prisão preventiva'),
-    ('Prisão temporária'),
-    ('Busca e apreensão de menoridade'),
-    ('Busca e apreensão de objetos'),
-    ('Quebra de sigilo telemático'),
-    ('Quebra de sigilo bancário');
+    ('Pedido de Prisão Preventiva'),
+    ('Pedido de Prisão Temporária'),
+    ('Pedido de Quebra de Sigilo de Dados e/ou Telefônico'),
+    ('Pedido de Busca e Apreensão Criminal'),
+    ('Pedido de Busca e Apreensão de Menor');
 
 -- Status do Pedido (nome, cor hex, ordem de exibição)
 INSERT IGNORE INTO status_pedido (nome, cor, ordem) VALUES

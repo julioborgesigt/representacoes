@@ -384,8 +384,22 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     border: 1px solid var(--border);
     border-radius: var(--radius);
 }
-.import-tabela-wrap table { border: none; font-size: .8rem; min-width: 600px; }
+.import-tabela-wrap table { border: none; font-size: .8rem; min-width: 640px; }
 .import-tabela-wrap thead th { position: sticky; top: 0; background: #f1f5f9; z-index: 1; }
+.import-row-ignorada { opacity: .45; }
+
+.badge-cautelar-sim {
+    display: inline-block;
+    background: #dcfce7; color: #166534;
+    border-radius: 9999px; padding: .1rem .55rem;
+    font-size: .7rem; font-weight: 700; white-space: nowrap;
+}
+.badge-cautelar-nao {
+    display: inline-block;
+    background: #fee2e2; color: #991b1b;
+    border-radius: 9999px; padding: .1rem .55rem;
+    font-size: .7rem; font-weight: 700; white-space: nowrap;
+}
 
 /* Toast de resultado */
 .toast {

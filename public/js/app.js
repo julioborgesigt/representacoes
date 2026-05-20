@@ -384,6 +384,7 @@ async function processarCSV(event) {
             data_envio:        converterData(idx.dataHora >= 0 ? row[idx.dataHora]?.trim() : ''),
             assunto_principal: idx.assuntoPrincipal >= 0 ? row[idx.assuntoPrincipal]?.trim() : '',
             situacao:          idx.situacao >= 0 ? row[idx.situacao]?.trim() : '',
+            classe:            idx.classe >= 0 ? row[idx.classe]?.trim() : '',
         });
     }
 
@@ -452,26 +453,42 @@ function parsearCSV(texto) {
 }
 
 function renderPreviewImportacao() {
+    // Verifica quais linhas são cautelares reconhecidas (client-side preview)
+    const nomesTipos = new Set(dominios.tiposPedido.map(t => t.nome.toLowerCase().trim()));
+    const cautelares = linhasCSV.filter(l => nomesTipos.has((l.classe || '').toLowerCase().trim()));
+    const ignoradas  = linhasCSV.length - cautelares.length;
+
     const resumo = document.getElementById('importResumo');
-    resumo.textContent = `${linhasCSV.length} linha${linhasCSV.length !== 1 ? 's' : ''} encontrada${linhasCSV.length !== 1 ? 's' : ''} no arquivo.`;
+    resumo.innerHTML =
+        `<strong>${linhasCSV.length}</strong> linha${linhasCSV.length !== 1 ? 's' : ''} lida${linhasCSV.length !== 1 ? 's' : ''} — ` +
+        `<strong>${cautelares.length}</strong> pedido${cautelares.length !== 1 ? 's' : ''} cautelar${cautelares.length !== 1 ? 'es' : ''} serão importados` +
+        (ignoradas > 0 ? `, <strong>${ignoradas}</strong> ignorado${ignoradas !== 1 ? 's' : ''} (não são cautelares)` : '') + '.';
     resumo.classList.remove('hidden');
 
-    const rows = linhasCSV.map(l => `
-        <tr>
+    const rows = linhasCSV.map(l => {
+        const cautelar = nomesTipos.has((l.classe || '').toLowerCase().trim());
+        const badge    = cautelar
+            ? '<span class="badge-cautelar-sim">✓ Cautelar</span>'
+            : '<span class="badge-cautelar-nao">✗ Ignorar</span>';
+        return `
+        <tr class="${cautelar ? '' : 'import-row-ignorada'}">
+            <td>${badge}</td>
             <td>${esc(l.numero_processo)}</td>
             <td>${l.data_envio ? formatarData(l.data_envio) : '—'}</td>
+            <td>${esc(l.classe || '—')}</td>
             <td>${esc(l.assunto_principal || '—')}</td>
-            <td>${esc(l.situacao || '—')}</td>
-        </tr>`).join('');
+        </tr>`;
+    }).join('');
 
     document.getElementById('importTabela').innerHTML = `
         <table>
             <thead>
                 <tr>
+                    <th></th>
                     <th>Nº do Processo</th>
                     <th>Data de Envio</th>
+                    <th>Classe (Tipo de Pedido)</th>
                     <th>Assunto Principal</th>
-                    <th>Situação</th>
                 </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -502,10 +519,13 @@ async function confirmarImportacao() {
 
         fecharModalImport();
         await carregarRepresentacoes();
-        mostrarToast(
-            `Importação concluída — criados: ${dados.criados}, ` +
-            `atualizados: ${dados.atualizados}, sem alteração: ${dados.sem_alteracao}.`
-        );
+        const partes = [
+            `criados: ${dados.criados}`,
+            `atualizados: ${dados.atualizados}`,
+            `sem alteração: ${dados.sem_alteracao}`,
+        ];
+        if (dados.ignorados > 0) partes.push(`ignorados (não cautelares): ${dados.ignorados}`);
+        mostrarToast('Importação concluída — ' + partes.join(', ') + '.');
     } finally {
         btn.disabled    = false;
         btn.textContent = 'Confirmar Importação';
