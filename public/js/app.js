@@ -205,8 +205,8 @@ function criarLinha(r) {
         <td class="col-detalhe">${esc(r.cidade)}</td>
         <td class="col-detalhe pedidos-cell">${pedidosHTML}</td>
         <td class="col-detalhe" style="text-align:center">${r.qtd_alvos_total}</td>
-        <td class="col-detalhe">${sigilo}</td>
         <td class="col-simples">${r.senha_processo ? '••••••' : '<span style="color:#94a3b8">—</span>'}</td>
+        <td class="col-simples">${r.observacoes ? esc(r.observacoes) : '<span style="color:#94a3b8">—</span>'}</td>
         <td class="col-detalhe">${dataEnvio}</td>
         <td class="col-detalhe">${dataVerif}</td>
         <td class="col-simples">
@@ -270,6 +270,7 @@ async function abrirModalEditar(id) {
     document.getElementById('fSenha').value           = r.senha_processo || '';
     document.getElementById('fSemSenha').checked      = !r.senha_processo;
     document.getElementById('fSenha').disabled        = !r.senha_processo;
+    document.getElementById('fObservacoes').value      = r.observacoes || '';
     document.getElementById('fDataEnvio').value       = r.data_envio?.slice(0, 10) || '';
     document.getElementById('fDataVerificacao').value = r.data_ultima_verificacao?.slice(0, 10) || '';
     document.getElementById('fStatusForm').value      = r.status_id;
@@ -335,6 +336,7 @@ async function salvarRepresentacao(e) {
         senha_processo:          document.getElementById('fSemSenha').checked
                                     ? null
                                     : document.getElementById('fSenha').value || null,
+        observacoes:             document.getElementById('fObservacoes').value.trim() || null,
         data_envio:              document.getElementById('fDataEnvio').value,
         data_ultima_verificacao: document.getElementById('fDataVerificacao').value || null,
         status_id:               document.getElementById('fStatusForm').value,
