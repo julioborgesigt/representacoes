@@ -24,6 +24,8 @@ async function init() {
     document.getElementById('btnNovo').addEventListener('click', abrirModalNovo);
     document.getElementById('btnCancelar').addEventListener('click', fecharModal);
     document.getElementById('btnFecharModal').addEventListener('click', fecharModal);
+    document.getElementById('btnFecharSenha').addEventListener('click', fecharModalSenha);
+    document.getElementById('btnCopiarSenha').addEventListener('click', copiarSenha);
     document.getElementById('formRep').addEventListener('submit', salvarRepresentacao);
     document.getElementById('fSemSenha').addEventListener('change', toggleSenha);
     document.getElementById('fNumPedidos').addEventListener('change', () => {
@@ -194,7 +196,6 @@ function criarLinha(r) {
 
     const dataEnvio = formatarData(r.data_envio);
     const dataVerif = r.data_ultima_verificacao ? formatarData(r.data_ultima_verificacao) : '—';
-    const sigilo    = r.tipo_sigilo === 'sigilo_absoluto' ? 'Sigilo Absoluto' : 'Segredo de Justiça';
 
     tr.innerHTML = `
         <td class="col-simples">${esc(r.numero_processo)}</td>
@@ -205,7 +206,6 @@ function criarLinha(r) {
         <td class="col-detalhe">${esc(r.cidade)}</td>
         <td class="col-detalhe pedidos-cell">${pedidosHTML}</td>
         <td class="col-detalhe" style="text-align:center">${r.qtd_alvos_total}</td>
-        <td class="col-simples">${r.senha_processo ? '••••••' : '<span style="color:#94a3b8">—</span>'}</td>
         <td class="col-simples">${r.observacoes ? esc(r.observacoes) : '<span style="color:#94a3b8">—</span>'}</td>
         <td class="col-detalhe">${dataEnvio}</td>
         <td class="col-detalhe">${dataVerif}</td>
@@ -215,25 +215,31 @@ function criarLinha(r) {
           </span>
         </td>
         <td class="col-simples td-acoes">
-            <button class="btn btn-sm btn-edit"   data-action="editar"  title="Editar" aria-label="Editar">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-            </button>
-            <button class="btn btn-sm btn-delete" data-action="excluir" title="Excluir" aria-label="Excluir">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                    <path d="M10 11v6M14 11v6"/>
-                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                </svg>
-            </button>
+            <div class="acoes-icons">
+                <button class="btn btn-sm btn-edit"   data-action="editar"  title="Editar" aria-label="Editar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </button>
+                <button class="btn btn-sm btn-delete" data-action="excluir" title="Excluir" aria-label="Excluir">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                        <path d="M10 11v6M14 11v6"/>
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                    </svg>
+                </button>
+            </div>
+            ${r.senha_processo ? `<button class="btn btn-sm btn-senha" data-action="senha">Ver senha</button>` : ''}
         </td>
     `;
 
     tr.querySelector('[data-action="editar"]').addEventListener('click', () => abrirModalEditar(r.id));
     tr.querySelector('[data-action="excluir"]').addEventListener('click', () => excluir(r.id));
+    if (r.senha_processo) {
+        tr.querySelector('[data-action="senha"]').addEventListener('click', () => abrirModalSenha(r.senha_processo));
+    }
 
     return tr;
 }
@@ -284,6 +290,24 @@ async function abrirModalEditar(id) {
 
 function fecharModal() {
     document.getElementById('modal').classList.add('hidden');
+}
+
+function abrirModalSenha(senha) {
+    document.getElementById('senhaValor').textContent = senha;
+    document.getElementById('senhaCopiadaMsg').classList.add('hidden');
+    document.getElementById('modalSenha').classList.remove('hidden');
+}
+
+function fecharModalSenha() {
+    document.getElementById('modalSenha').classList.add('hidden');
+}
+
+async function copiarSenha() {
+    const senha = document.getElementById('senhaValor').textContent;
+    await navigator.clipboard.writeText(senha);
+    const msg = document.getElementById('senhaCopiadaMsg');
+    msg.classList.remove('hidden');
+    setTimeout(() => msg.classList.add('hidden'), 2500);
 }
 
 function toggleSenha() {
