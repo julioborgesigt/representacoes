@@ -204,83 +204,88 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
     if (!Array.isArray(linhas) || linhas.length === 0)
         return res.status(400).json({ erro: 'Nenhuma linha recebida.' });
 
-    const [tiposPedido] = await pool.query('SELECT id, nome FROM tipos_pedido');
-    const crimes        = (await pool.query('SELECT id, nome FROM crimes'))[0];
-    const [status]      = await pool.query('SELECT id, nome FROM status_pedido ORDER BY ordem');
-    const [varas]       = await pool.query('SELECT id FROM varas   ORDER BY id LIMIT 1');
-    const [cidades]     = await pool.query('SELECT id FROM cidades ORDER BY id LIMIT 1');
-
-    const defaultVaraId   = varas[0]?.id   ?? 1;
-    const defaultCidadeId = cidades[0]?.id ?? 1;
-    const defaultStatusId = status[0]?.id  ?? 1;
-
-    function matchExato(lista, nome) {
-        if (!nome) return null;
-        const q = nome.toLowerCase().trim();
-        return lista.find(i => i.nome.toLowerCase() === q) ?? null;
-    }
-    function matchNome(lista, nome) {
-        return matchExato(lista, nome)?.id
-            ?? lista.find(i => {
-                const q = (nome ?? '').toLowerCase().trim();
-                const n = i.nome.toLowerCase();
-                return q.includes(n) || n.includes(q);
-            })?.id
-            ?? null;
-    }
-
-    // Busca crime por nome exato; se não existir, cria e atualiza o cache local
-    async function encontrarOuCriarCrime(conn, nome) {
-        if (!nome?.trim()) return crimes[0]?.id ?? 1;
-        const nomeTrimmed = nome.trim();
-        const existente   = matchExato(crimes, nomeTrimmed);
-        if (existente) return existente.id;
-        const [ins] = await conn.query('INSERT INTO crimes (nome) VALUES (?)', [nomeTrimmed]);
-        crimes.push({ id: ins.insertId, nome: nomeTrimmed });
-        return ins.insertId;
-    }
-
-    const resultado = { criados: 0, atualizados: 0, sem_alteracao: 0, ignorados: 0, crimes_novos: 0 };
-    const crimesAntes = crimes.length;
-    const conn = await pool.getConnection();
-    await conn.beginTransaction();
+    let conn;
     try {
+        const [tiposPedido] = await pool.query('SELECT id, nome FROM tipos_pedido');
+        const [crimesDB]    = await pool.query('SELECT id, nome FROM crimes');
+        const [statusList]  = await pool.query('SELECT id, nome FROM status_pedido ORDER BY ordem');
+        const [varas]       = await pool.query('SELECT id FROM varas   ORDER BY id LIMIT 1');
+        const [cidades]     = await pool.query('SELECT id FROM cidades ORDER BY id LIMIT 1');
+
+        if (!varas.length || !cidades.length || !statusList.length)
+            return res.status(500).json({ erro: 'Dados de configuração incompletos (varas, cidades ou status não cadastrados).' });
+
+        const defaultVaraId   = varas[0].id;
+        const defaultCidadeId = cidades[0].id;
+        const defaultStatusId = statusList[0].id;
+
+        // Cache mutable: cresce durante o batch sem re-consultar o banco
+        const crimeCache = new Map(crimesDB.map(c => [c.nome.toLowerCase().trim(), c.id]));
+
+        function matchExato(lista, nome) {
+            if (!nome) return null;
+            const q = nome.toLowerCase().trim();
+            return lista.find(i => i.nome.toLowerCase() === q) ?? null;
+        }
+        function matchNomeFuzzy(lista, nome) {
+            if (!nome) return null;
+            const q = nome.toLowerCase().trim();
+            return lista.find(i => i.nome.toLowerCase() === q)?.id
+                ?? lista.find(i => { const n = i.nome.toLowerCase(); return q.includes(n) || n.includes(q); })?.id
+                ?? null;
+        }
+
+        const resultado = { criados: 0, atualizados: 0, sem_alteracao: 0, ignorados: 0, crimes_novos: 0 };
+
+        conn = await pool.getConnection();
+        await conn.beginTransaction();
+
         for (const l of linhas) {
             const { numero_processo, data_envio, assunto_principal, situacao, classe } = l;
             if (!numero_processo) continue;
 
-            // Só processa se a Classe corresponder a um tipo de pedido cautelar cadastrado
             const tipoPedido = matchExato(tiposPedido, classe);
-            if (!tipoPedido) {
-                resultado.ignorados++;
-                continue;
+            if (!tipoPedido) { resultado.ignorados++; continue; }
+
+            // ── Crime: busca no cache; se não existir, cria ──────────────────
+            const nomecrimeKey = (assunto_principal ?? '').toLowerCase().trim();
+            let crimeId = crimeCache.get(nomecrimeKey);
+            if (!crimeId) {
+                const nomeCrime = (assunto_principal ?? '').trim() || 'Não informado';
+                // INSERT IGNORE evita erro de UNIQUE; depois buscamos o ID real
+                await conn.query('INSERT IGNORE INTO crimes (nome) VALUES (?)', [nomeCrime]);
+                const [[crimeRow]] = await conn.query(
+                    'SELECT id FROM crimes WHERE LOWER(nome) = LOWER(?)', [nomeCrime]
+                );
+                if (!crimeRow) throw new Error(`Falha ao criar crime: ${nomeCrime}`);
+                crimeId = crimeRow.id;
+                crimeCache.set(nomecrimeKey, crimeId);
+                resultado.crimes_novos++;
             }
 
-            const crimeId = await encontrarOuCriarCrime(conn, assunto_principal);
-
-            const [exist] = await conn.query(
+            // ── Verifica se registro já existe ──────────────────────────────
+            const [[exist]] = await conn.query(
                 'SELECT id, data_envio, crime_id FROM representacoes WHERE numero_processo = ?',
                 [numero_processo]
             );
 
-            if (exist.length > 0) {
-                const rep    = exist[0];
-                const dataDB = rep.data_envio instanceof Date
-                    ? rep.data_envio.toISOString().slice(0, 10)
-                    : String(rep.data_envio ?? '').slice(0, 10);
-                const mudou  = (data_envio && dataDB !== data_envio) || rep.crime_id !== crimeId;
+            if (exist) {
+                const dataDB = exist.data_envio instanceof Date
+                    ? exist.data_envio.toISOString().slice(0, 10)
+                    : String(exist.data_envio ?? '').slice(0, 10);
+                const mudou = (data_envio && dataDB !== data_envio) || exist.crime_id !== crimeId;
 
                 if (mudou) {
                     await conn.query(
                         'UPDATE representacoes SET data_envio = ?, crime_id = ? WHERE id = ?',
-                        [data_envio || dataDB, crimeId, rep.id]
+                        [data_envio || dataDB, crimeId, exist.id]
                     );
                     resultado.atualizados++;
                 } else {
                     resultado.sem_alteracao++;
                 }
             } else {
-                const statusId = matchNome(status, situacao) ?? defaultStatusId;
+                const statusId = matchNomeFuzzy(statusList, situacao) ?? defaultStatusId;
                 const [ins] = await conn.query(
                     `INSERT INTO representacoes
                      (numero_processo, numero_ip, vara_id, peticionante, crime_id, cidade_id,
@@ -293,7 +298,6 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
                         statusId, req.session.usuario.id,
                     ]
                 );
-                // Insere o tipo de pedido cautelar identificado pela Classe do CSV
                 await conn.query(
                     'INSERT INTO representacao_pedidos (representacao_id, tipo_pedido_id, qtd_alvos) VALUES (?, ?, 0)',
                     [ins.insertId, tipoPedido.id]
@@ -301,14 +305,16 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
                 resultado.criados++;
             }
         }
-        resultado.crimes_novos = crimes.length - crimesAntes;
+
         await conn.commit();
         res.json(resultado);
+
     } catch (err) {
-        await conn.rollback();
-        throw err;
+        if (conn) await conn.rollback().catch(() => {});
+        console.error('[importar]', err);
+        res.status(500).json({ erro: err.message || 'Erro interno ao importar.' });
     } finally {
-        conn.release();
+        if (conn) conn.release();
     }
 });
 
