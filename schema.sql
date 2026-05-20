@@ -82,6 +82,9 @@ CREATE TABLE IF NOT EXISTS representacoes (
     data_envio           DATE NOT NULL,
     data_ultima_verificacao DATE NULL,
 
+    -- Observações
+    observacoes          VARCHAR(50) NULL,
+
     -- Situação
     status_id            TINYINT UNSIGNED NOT NULL,
 

@@ -39,6 +39,7 @@ router.get('/representacoes', requireLogin, async (req, res) => {
             r.qtd_alvos_total,
             r.tipo_sigilo,
             r.senha_processo,
+            r.observacoes,
             r.data_envio,
             r.data_ultima_verificacao,
             sp.id            AS status_id,
@@ -86,6 +87,7 @@ router.post('/representacoes', requireLogin, async (req, res) => {
         pedidos,
         qtd_alvos_total,
         tipo_sigilo, senha_processo,
+        observacoes,
         data_envio, data_ultima_verificacao,
         status_id,
     } = req.body;
@@ -100,15 +102,16 @@ router.post('/representacoes', requireLogin, async (req, res) => {
         const [result] = await conn.query(
             `INSERT INTO representacoes
              (numero_processo, numero_ip, vara_id, peticionante, crime_id, cidade_id,
-              qtd_alvos_total, tipo_sigilo, senha_processo,
+              qtd_alvos_total, tipo_sigilo, senha_processo, observacoes,
               data_envio, data_ultima_verificacao, status_id, criado_por)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
                 numero_processo, numero_ip,
                 vara_id, peticionante,
                 crime_id, cidade_id,
                 qtd_alvos_total || 0,
                 tipo_sigilo, senha_processo || null,
+                observacoes || null,
                 data_envio, data_ultima_verificacao || null,
                 status_id,
                 req.session.usuario.id,
@@ -142,6 +145,7 @@ router.put('/representacoes/:id', requireLogin, async (req, res) => {
         pedidos,
         qtd_alvos_total,
         tipo_sigilo, senha_processo,
+        observacoes,
         data_envio, data_ultima_verificacao,
         status_id,
     } = req.body;
@@ -164,6 +168,7 @@ router.put('/representacoes/:id', requireLogin, async (req, res) => {
                 qtd_alvos_total         = ?,
                 tipo_sigilo             = ?,
                 senha_processo          = ?,
+                observacoes             = ?,
                 data_envio              = ?,
                 data_ultima_verificacao = ?,
                 status_id               = ?
@@ -174,6 +179,7 @@ router.put('/representacoes/:id', requireLogin, async (req, res) => {
                 crime_id, cidade_id,
                 qtd_alvos_total || 0,
                 tipo_sigilo, senha_processo || null,
+                observacoes || null,
                 data_envio, data_ultima_verificacao || null,
                 status_id,
                 req.params.id,

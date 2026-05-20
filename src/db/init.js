@@ -35,6 +35,16 @@ export async function initDB() {
         console.log('[DB] Tabelas criadas.');
     }
 
+    // Migração: adiciona coluna observacoes se não existir
+    const [[{ temObs }]] = await pool.query(
+        `SELECT COUNT(*) AS temObs FROM information_schema.columns
+         WHERE table_schema = DATABASE() AND table_name = 'representacoes' AND column_name = 'observacoes'`
+    );
+    if (Number(temObs) === 0) {
+        await pool.query('ALTER TABLE representacoes ADD COLUMN observacoes VARCHAR(50) NULL AFTER data_ultima_verificacao');
+        console.log('[DB] Coluna observacoes adicionada.');
+    }
+
     const [[{ adminCount }]] = await pool.query(
         "SELECT COUNT(*) AS adminCount FROM usuarios WHERE login = 'admin'"
     );
