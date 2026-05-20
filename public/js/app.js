@@ -405,12 +405,13 @@ function normalizarChave(str) {
 }
 
 function mapearColunas(cab) {
-    const idx = { dataHora: -1, numeroProcesso: -1, assuntoPrincipal: -1, situacao: -1 };
+    const idx = { dataHora: -1, numeroProcesso: -1, classe: -1, assuntoPrincipal: -1, situacao: -1 };
     cab.forEach((h, i) => {
-        if (/data|hora/.test(h))             idx.dataHora         = i;
-        if (/numero.*processo|processo/.test(h)) idx.numeroProcesso = i;
-        if (/assunto/.test(h))               idx.assuntoPrincipal = i;
-        if (/situac/.test(h))                idx.situacao         = i;
+        if (/data|hora/.test(h))                    idx.dataHora         = i;
+        if (/numero.*processo|processo/.test(h))    idx.numeroProcesso   = i;
+        if (/^classe$/.test(h))                     idx.classe           = i;
+        if (/assunto/.test(h))                      idx.assuntoPrincipal = i;
+        if (/situac/.test(h))                       idx.situacao         = i;
     });
     return idx;
 }
