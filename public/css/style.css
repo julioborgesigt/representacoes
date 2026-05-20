@@ -438,7 +438,7 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     white-space: nowrap;
     transition: background .15s, box-shadow .15s;
 }
-.btn-primary         { background: var(--brand); color: #fff; }
+.btn-primary         { background: var(--brand); color: #fff; border: 2px solid #fff; }
 .btn-primary:hover   { background: var(--brand-h); box-shadow: 0 4px 12px #1e40af33; }
 .btn-secondary       { background: #e2e8f0; color: var(--text); }
 .btn-secondary:hover { background: #cbd5e1; }
@@ -535,11 +535,14 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     .filtros {
         display: none;
         flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
         gap: .6rem;
         padding: .9rem 1rem;
     }
     .filtros.aberto { display: flex; }
 
+    .filtro-grupo,
     .filtro-grupo select,
     .filtros .btn { width: 100%; }
     .filtros .btn-ghost { color: var(--muted); border-color: var(--border); }
