@@ -5,10 +5,11 @@ import session from 'express-session';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-import authRouter          from './routes/auth.js';
-import dominiosRouter      from './routes/dominios.js';
+import authRouter           from './routes/auth.js';
+import dominiosRouter       from './routes/dominios.js';
 import representacoesRouter from './routes/representacoes.js';
-import { requireLogin }    from './middleware/auth.js';
+import { requireLogin }     from './middleware/auth.js';
+import { initDB }           from './db/init.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app  = express();
@@ -52,4 +53,7 @@ app.use((err, _req, res, _next) => {
     res.status(500).json({ erro: 'Erro interno do servidor.' });
 });
 
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+// Inicializa banco e sobe o servidor
+initDB()
+    .then(() => app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`)))
+    .catch(err => { console.error('[DB] Falha na inicialização:', err); process.exit(1); });
