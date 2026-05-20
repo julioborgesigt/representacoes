@@ -92,7 +92,6 @@
                 <th class="col-detalhe">Cidade</th>
                 <th class="col-detalhe">Pedidos</th>
                 <th class="col-detalhe">Alvos (Total)</th>
-                <th class="col-simples">Senha</th>
                 <th class="col-simples">Observações</th>
                 <th class="col-detalhe">Envio</th>
                 <th class="col-detalhe">Ult. Verificação</th>
@@ -239,6 +238,22 @@
         <div class="modal-footer">
             <button type="button" id="btnCancelarImport" class="btn btn-outline">Cancelar</button>
             <button type="button" id="btnConfirmarImport" class="btn btn-primary">Confirmar Importação</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL VER SENHA ───────────────────────────────────────────────────── -->
+<div id="modalSenha" class="modal hidden" role="dialog" aria-modal="true" aria-label="Ver Senha">
+    <div class="modal-backdrop" id="modalSenhaBackdrop"></div>
+    <div class="modal-box modal-box-sm">
+        <div class="modal-header">
+            <h2>Senha do Processo</h2>
+            <button type="button" class="modal-close" id="btnFecharSenha">&times;</button>
+        </div>
+        <div class="senha-modal-body">
+            <div class="senha-campo" id="senhaValor"></div>
+            <button type="button" id="btnCopiarSenha" class="btn btn-primary">Copiar senha</button>
+            <p id="senhaCopiadaMsg" class="copiado-msg hidden">&#10003; Copiado com sucesso!</p>
         </div>
     </div>
 </div>
