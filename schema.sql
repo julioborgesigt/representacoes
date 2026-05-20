@@ -130,14 +130,7 @@ INSERT IGNORE INTO varas (nome) VALUES
     ('1ª VC'),
     ('Plantão');
 
--- Crimes
-INSERT IGNORE INTO crimes (nome) VALUES
-    ('Tráfico de drogas'),
-    ('Orcrim'),
-    ('Homicídio'),
-    ('SN Armas'),
-    ('Roubo'),
-    ('Latrocínio');
+-- Crimes: populados automaticamente via importação de CSV (coluna "Assunto principal")
 
 -- Cidades
 INSERT IGNORE INTO cidades (nome) VALUES
