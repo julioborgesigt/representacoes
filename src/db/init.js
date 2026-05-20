@@ -2,13 +2,28 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
+import mysql from 'mysql2/promise';
 import pool from './pool.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const sqlPath   = join(__dirname, '..', '..', 'schema.sql');
 
+function makeConnConfig(extra = {}) {
+    if (process.env.DATABASE_URL) {
+        return { uri: process.env.DATABASE_URL, ...extra };
+    }
+    return {
+        host:     process.env.DB_HOST || 'localhost',
+        port:     Number(process.env.DB_PORT) || 3306,
+        database: process.env.DB_NAME,
+        user:     process.env.DB_USER,
+        password: process.env.DB_PASS,
+        ...extra,
+    };
+}
+
 export async function initDB() {
-    // Verifica se as tabelas já existem para evitar reexecução desnecessária
+    // Verifica se as tabelas já existem
     const [[{ count }]] = await pool.query(
         `SELECT COUNT(*) AS count
          FROM information_schema.tables
@@ -17,21 +32,19 @@ export async function initDB() {
 
     if (Number(count) === 0) {
         console.log('[DB] Primeira execução — criando tabelas e dados iniciais...');
+
+        // Conexão dedicada com multipleStatements para executar o schema inteiro de uma vez
+        const conn = await mysql.createConnection(
+            makeConnConfig({ multipleStatements: true })
+        );
         const sql = readFileSync(sqlPath, 'utf8');
-        const conn = await pool.getConnection();
-        // multipleStatements não está ativo no pool; executa bloco a bloco
-        const statements = sql
-            .split(/;\s*\n/)
-            .map(s => s.trim())
-            .filter(s => s.length > 0 && !s.startsWith('--'));
-        for (const stmt of statements) {
-            await conn.query(stmt).catch(() => {}); // ignora IF NOT EXISTS duplicados
-        }
-        conn.release();
+        await conn.query(sql);
+        await conn.end();
+
         console.log('[DB] Tabelas criadas.');
     }
 
-    // Cria usuário admin apenas se não existir
+    // Cria admin apenas se não existir
     const [[{ adminCount }]] = await pool.query(
         "SELECT COUNT(*) AS adminCount FROM usuarios WHERE login = 'admin'"
     );
@@ -45,6 +58,6 @@ export async function initDB() {
             [hash]
         );
         console.log(`[DB] Usuário admin criado. Senha: ${ADMIN_SENHA}`);
-        console.log('[DB] ⚠ Altere a senha no primeiro acesso!');
+        console.log('[DB] ⚠  Altere a senha no primeiro acesso!');
     }
 }
