@@ -96,6 +96,27 @@ export async function initDB() {
         console.log('[DB] Migração de tipos de pedido concluída.');
     }
 
+    // ── Migração: remover colunas legadas tipo_pedido_id / qtd_alvos_pedido ────
+    const [[{ temTipoPedidoCol }]] = await pool.query(
+        `SELECT COUNT(*) AS temTipoPedidoCol FROM information_schema.columns
+         WHERE table_schema = DATABASE() AND table_name = 'representacoes' AND column_name = 'tipo_pedido_id'`
+    );
+    if (Number(temTipoPedidoCol) > 0) {
+        console.log('[DB] Migrando: removendo coluna legada tipo_pedido_id de representacoes...');
+        await pool.query('ALTER TABLE representacoes DROP COLUMN tipo_pedido_id');
+        console.log('[DB] Coluna tipo_pedido_id removida.');
+    }
+
+    const [[{ temQtdAlvosCol }]] = await pool.query(
+        `SELECT COUNT(*) AS temQtdAlvosCol FROM information_schema.columns
+         WHERE table_schema = DATABASE() AND table_name = 'representacoes' AND column_name = 'qtd_alvos_pedido'`
+    );
+    if (Number(temQtdAlvosCol) > 0) {
+        console.log('[DB] Migrando: removendo coluna legada qtd_alvos_pedido de representacoes...');
+        await pool.query('ALTER TABLE representacoes DROP COLUMN qtd_alvos_pedido');
+        console.log('[DB] Coluna qtd_alvos_pedido removida.');
+    }
+
     // ── Migração: remover crimes abreviados do seed antigo (sem representações) ─
     const crimesAntigos = ['Tráfico de drogas', 'Orcrim', 'Homicídio', 'SN Armas', 'Roubo', 'Latrocínio'];
     const placeholders  = crimesAntigos.map(() => '?').join(',');
