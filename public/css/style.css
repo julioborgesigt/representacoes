@@ -607,7 +607,9 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-    .modo-completo table { min-width: 900px; }
+    .modo-completo table { min-width: 1200px; }
+    /* Cabeçalhos não quebram no modo completo — a tabela rola horizontalmente */
+    .modo-completo th { white-space: nowrap; word-break: normal; }
 
     /* Modo simplificado: oculta colunas de detalhe */
     .modo-simples .col-detalhe { display: none; }
