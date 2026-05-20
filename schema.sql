@@ -160,13 +160,7 @@ INSERT IGNORE INTO status_pedido (nome, cor, ordem) VALUES
 
 -- ============================================================
 -- USUÁRIO ADMINISTRADOR PADRÃO
--- Senha: Admin@123
--- Hash bcrypt (rounds=10) gerado offline para deploy seguro.
--- ALTERE A SENHA NO PRIMEIRO ACESSO!
+-- O hash é gerado em tempo de execução pelo script setup.js
+-- para garantir que seja um hash bcrypt válido.
 -- ============================================================
-INSERT IGNORE INTO usuarios (nome, login, senha_hash, perfil) VALUES (
-    'Administrador',
-    'admin',
-    '$2b$10$YzQ4ZGM2NjYxZDE0ZGU4OOeLKAQoGtqQ7Mpm7q.yHSmFbWHHt8lIS',
-    'admin'
-);
+-- (inserção feita via setup.js com bcrypt.hash())

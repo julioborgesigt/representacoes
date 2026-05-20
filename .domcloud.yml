@@ -3,16 +3,18 @@
 
 source:
   repository: https://github.com/julioborgesigt/representacoes
+  branch: main   # ajuste se usar outra branch
 
 features:
   - node: lts
   - mysql: true
 
 nginx:
-  root: public_html/public
+  root: public_html        # raiz do repositório clonado
   passenger:
     enabled: "on"
-    app_start_command: "node src/server.js"
+    # DomCloud injeta $PORT — o servidor deve escutar nessa porta
+    app_start_command: "env PORT=$PORT node src/server.js"
 
 commands:
   - npm install --omit=dev
