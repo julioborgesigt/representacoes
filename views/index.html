@@ -68,8 +68,7 @@
                 <th>Peticionante</th>
                 <th>Crime</th>
                 <th>Cidade</th>
-                <th>Tipo de Pedido</th>
-                <th>Alvos (Pedido)</th>
+                <th>Pedidos</th>
                 <th>Alvos (Total)</th>
                 <th>Sigilo</th>
                 <th>Envio</th>
@@ -117,16 +116,23 @@
                     <select id="fCidadeForm" required></select>
                 </div>
                 <div class="field">
-                    <label>Tipo de Pedido *</label>
-                    <select id="fTipoPedido" required></select>
+                    <label>Quantidade de Pedidos *</label>
+                    <select id="fNumPedidos">
+                        <option value="1">1 pedido</option>
+                        <option value="2">2 pedidos</option>
+                        <option value="3">3 pedidos</option>
+                        <option value="4">4 pedidos</option>
+                        <option value="5">5 pedidos</option>
+                        <option value="6">6 pedidos</option>
+                        <option value="7">7 pedidos</option>
+                        <option value="8">8 pedidos</option>
+                        <option value="9">9 pedidos</option>
+                    </select>
                 </div>
-                <div class="field">
-                    <label>Qtd. Alvos (este pedido) *</label>
-                    <input id="fAlvosPedido" type="number" min="0" value="0" required>
-                </div>
+                <div id="pedidosContainer" class="field-full"></div>
                 <div class="field field-full">
                     <label>Qtd. Alvos Total *
-                        <span class="dica-alvo">⚠ Atenção: não duplique alvos que possuam mais de um tipo de pedido.</span>
+                        <span class="dica-alvo">⚠ Atenção: não duplique alvos com mais de um tipo de pedido.</span>
                     </label>
                     <input id="fAlvosTotal" type="number" min="0" value="0" required>
                 </div>

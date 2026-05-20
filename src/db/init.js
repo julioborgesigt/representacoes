@@ -8,10 +8,8 @@ import pool from './pool.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const sqlPath   = join(__dirname, '..', '..', 'schema.sql');
 
-function makeConnConfig(extra = {}) {
-    if (process.env.DATABASE_URL) {
-        return { uri: process.env.DATABASE_URL, ...extra };
-    }
+function connConfig(extra = {}) {
+    if (process.env.DATABASE_URL) return { uri: process.env.DATABASE_URL, ...extra };
     return {
         host:     process.env.DB_HOST || 'localhost',
         port:     Number(process.env.DB_PORT) || 3306,
@@ -23,28 +21,51 @@ function makeConnConfig(extra = {}) {
 }
 
 export async function initDB() {
-    // Verifica se as tabelas já existem
+    // ── Primeira execução: cria todas as tabelas ─────────────────────────────
     const [[{ count }]] = await pool.query(
-        `SELECT COUNT(*) AS count
-         FROM information_schema.tables
+        `SELECT COUNT(*) AS count FROM information_schema.tables
          WHERE table_schema = DATABASE() AND table_name = 'representacoes'`
     );
 
     if (Number(count) === 0) {
         console.log('[DB] Primeira execução — criando tabelas e dados iniciais...');
-
-        // Conexão dedicada com multipleStatements para executar o schema inteiro de uma vez
-        const conn = await mysql.createConnection(
-            makeConnConfig({ multipleStatements: true })
-        );
-        const sql = readFileSync(sqlPath, 'utf8');
+        const conn = await mysql.createConnection(connConfig({ multipleStatements: true }));
+        const sql  = readFileSync(sqlPath, 'utf8');
         await conn.query(sql);
         await conn.end();
-
         console.log('[DB] Tabelas criadas.');
     }
 
-    // Cria admin apenas se não existir
+    // ── Migração: representacao_pedidos (para deploys existentes) ────────────
+    const [[{ temPedidos }]] = await pool.query(
+        `SELECT COUNT(*) AS temPedidos FROM information_schema.tables
+         WHERE table_schema = DATABASE() AND table_name = 'representacao_pedidos'`
+    );
+
+    if (Number(temPedidos) === 0) {
+        console.log('[DB] Migrando: criando tabela representacao_pedidos...');
+        await pool.query(`
+            CREATE TABLE representacao_pedidos (
+                id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                representacao_id INT UNSIGNED NOT NULL,
+                tipo_pedido_id   TINYINT UNSIGNED NOT NULL,
+                qtd_alvos        SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+                CONSTRAINT fk_rp_rep  FOREIGN KEY (representacao_id) REFERENCES representacoes(id) ON DELETE CASCADE,
+                CONSTRAINT fk_rp_tipo FOREIGN KEY (tipo_pedido_id)   REFERENCES tipos_pedido(id),
+                INDEX idx_rp_rep (representacao_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        // Migra dados existentes se a coluna tipo_pedido_id ainda existir
+        await pool.query(`
+            INSERT IGNORE INTO representacao_pedidos (representacao_id, tipo_pedido_id, qtd_alvos)
+            SELECT id, tipo_pedido_id, COALESCE(qtd_alvos_pedido, 0)
+            FROM representacoes
+            WHERE tipo_pedido_id IS NOT NULL
+        `).catch(() => {}); // coluna pode não existir em instalações novas
+        console.log('[DB] Migração concluída.');
+    }
+
+    // ── Usuário admin (apenas se não existir) ────────────────────────────────
     const [[{ adminCount }]] = await pool.query(
         "SELECT COUNT(*) AS adminCount FROM usuarios WHERE login = 'admin'"
     );

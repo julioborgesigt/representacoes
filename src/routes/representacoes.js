@@ -6,23 +6,18 @@ const router = Router();
 
 // ── LISTAR com filtros ───────────────────────────────────────────────────────
 router.get('/representacoes', requireLogin, async (req, res) => {
-    const {
-        ano, mes,
-        vara_id, crime_id, cidade_id, status_id,
-    } = req.query;
+    const { ano, mes, vara_id, crime_id, cidade_id, status_id } = req.query;
 
     const where  = [];
     const params = [];
 
-    // Filtro temporal padrão (ano e mês)
     if (ano && mes) {
         where.push("DATE_FORMAT(r.data_envio, '%Y-%m') = ?");
         params.push(`${ano}-${String(mes).padStart(2, '0')}`);
     } else if (ano) {
-        where.push("YEAR(r.data_envio) = ?");
+        where.push('YEAR(r.data_envio) = ?');
         params.push(ano);
     }
-
     if (vara_id)   { where.push('r.vara_id = ?');   params.push(vara_id);   }
     if (crime_id)  { where.push('r.crime_id = ?');  params.push(crime_id);  }
     if (cidade_id) { where.push('r.cidade_id = ?'); params.push(cidade_id); }
@@ -35,28 +30,30 @@ router.get('/representacoes', requireLogin, async (req, res) => {
             r.id,
             r.numero_processo,
             r.numero_ip,
-            v.nome          AS vara,
+            v.nome           AS vara,
             r.peticionante,
-            c.nome          AS crime,
-            cd.nome         AS cidade,
-            tp.nome         AS tipo_pedido,
-            r.qtd_alvos_pedido,
+            c.nome           AS crime,
+            cd.nome          AS cidade,
+            GROUP_CONCAT(tp.nome     ORDER BY rp.id SEPARATOR '||') AS pedidos_nomes,
+            GROUP_CONCAT(rp.qtd_alvos ORDER BY rp.id SEPARATOR ',') AS pedidos_alvos,
             r.qtd_alvos_total,
             r.tipo_sigilo,
             r.senha_processo,
             r.data_envio,
             r.data_ultima_verificacao,
-            sp.id           AS status_id,
-            sp.nome         AS status,
-            sp.cor          AS status_cor,
+            sp.id            AS status_id,
+            sp.nome          AS status,
+            sp.cor           AS status_cor,
             r.atualizado_em
         FROM representacoes r
-        JOIN varas        v  ON v.id  = r.vara_id
-        JOIN crimes       c  ON c.id  = r.crime_id
-        JOIN cidades      cd ON cd.id = r.cidade_id
-        JOIN tipos_pedido tp ON tp.id = r.tipo_pedido_id
+        JOIN varas         v  ON v.id  = r.vara_id
+        JOIN crimes        c  ON c.id  = r.crime_id
+        JOIN cidades       cd ON cd.id = r.cidade_id
+        LEFT JOIN representacao_pedidos rp ON rp.representacao_id = r.id
+        LEFT JOIN tipos_pedido          tp ON tp.id = rp.tipo_pedido_id
         JOIN status_pedido sp ON sp.id = r.status_id
         ${clausula}
+        GROUP BY r.id
         ORDER BY r.data_envio DESC, r.id DESC
     `;
 
@@ -71,7 +68,13 @@ router.get('/representacoes/:id', requireLogin, async (req, res) => {
         [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ erro: 'Não encontrado.' });
-    res.json(rows[0]);
+
+    const [pedidos] = await pool.query(
+        'SELECT tipo_pedido_id, qtd_alvos FROM representacao_pedidos WHERE representacao_id = ? ORDER BY id',
+        [req.params.id]
+    );
+
+    res.json({ ...rows[0], pedidos });
 });
 
 // ── CRIAR ────────────────────────────────────────────────────────────────────
@@ -80,33 +83,54 @@ router.post('/representacoes', requireLogin, async (req, res) => {
         numero_processo, numero_ip,
         vara_id, peticionante,
         crime_id, cidade_id,
-        tipo_pedido_id,
-        qtd_alvos_pedido, qtd_alvos_total,
+        pedidos,
+        qtd_alvos_total,
         tipo_sigilo, senha_processo,
         data_envio, data_ultima_verificacao,
         status_id,
     } = req.body;
 
-    const [result] = await pool.query(
-        `INSERT INTO representacoes
-         (numero_processo, numero_ip, vara_id, peticionante, crime_id, cidade_id,
-          tipo_pedido_id, qtd_alvos_pedido, qtd_alvos_total, tipo_sigilo, senha_processo,
-          data_envio, data_ultima_verificacao, status_id, criado_por)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [
-            numero_processo, numero_ip,
-            vara_id, peticionante,
-            crime_id, cidade_id,
-            tipo_pedido_id,
-            qtd_alvos_pedido || 0, qtd_alvos_total || 0,
-            tipo_sigilo, senha_processo || null,
-            data_envio, data_ultima_verificacao || null,
-            status_id,
-            req.session.usuario.id,
-        ]
-    );
+    if (!Array.isArray(pedidos) || pedidos.length === 0) {
+        return res.status(400).json({ erro: 'Informe pelo menos um tipo de pedido.' });
+    }
 
-    res.status(201).json({ id: result.insertId });
+    const conn = await pool.getConnection();
+    await conn.beginTransaction();
+    try {
+        const [result] = await conn.query(
+            `INSERT INTO representacoes
+             (numero_processo, numero_ip, vara_id, peticionante, crime_id, cidade_id,
+              qtd_alvos_total, tipo_sigilo, senha_processo,
+              data_envio, data_ultima_verificacao, status_id, criado_por)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [
+                numero_processo, numero_ip,
+                vara_id, peticionante,
+                crime_id, cidade_id,
+                qtd_alvos_total || 0,
+                tipo_sigilo, senha_processo || null,
+                data_envio, data_ultima_verificacao || null,
+                status_id,
+                req.session.usuario.id,
+            ]
+        );
+
+        const repId = result.insertId;
+        for (const p of pedidos) {
+            await conn.query(
+                'INSERT INTO representacao_pedidos (representacao_id, tipo_pedido_id, qtd_alvos) VALUES (?,?,?)',
+                [repId, p.tipo_pedido_id, p.qtd_alvos || 0]
+            );
+        }
+
+        await conn.commit();
+        res.status(201).json({ id: repId });
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
 });
 
 // ── ATUALIZAR ────────────────────────────────────────────────────────────────
@@ -115,44 +139,63 @@ router.put('/representacoes/:id', requireLogin, async (req, res) => {
         numero_processo, numero_ip,
         vara_id, peticionante,
         crime_id, cidade_id,
-        tipo_pedido_id,
-        qtd_alvos_pedido, qtd_alvos_total,
+        pedidos,
+        qtd_alvos_total,
         tipo_sigilo, senha_processo,
         data_envio, data_ultima_verificacao,
         status_id,
     } = req.body;
 
-    await pool.query(
-        `UPDATE representacoes SET
-            numero_processo        = ?,
-            numero_ip              = ?,
-            vara_id                = ?,
-            peticionante           = ?,
-            crime_id               = ?,
-            cidade_id              = ?,
-            tipo_pedido_id         = ?,
-            qtd_alvos_pedido       = ?,
-            qtd_alvos_total        = ?,
-            tipo_sigilo            = ?,
-            senha_processo         = ?,
-            data_envio             = ?,
-            data_ultima_verificacao= ?,
-            status_id              = ?
-         WHERE id = ?`,
-        [
-            numero_processo, numero_ip,
-            vara_id, peticionante,
-            crime_id, cidade_id,
-            tipo_pedido_id,
-            qtd_alvos_pedido || 0, qtd_alvos_total || 0,
-            tipo_sigilo, senha_processo || null,
-            data_envio, data_ultima_verificacao || null,
-            status_id,
-            req.params.id,
-        ]
-    );
+    if (!Array.isArray(pedidos) || pedidos.length === 0) {
+        return res.status(400).json({ erro: 'Informe pelo menos um tipo de pedido.' });
+    }
 
-    res.json({ ok: true });
+    const conn = await pool.getConnection();
+    await conn.beginTransaction();
+    try {
+        await conn.query(
+            `UPDATE representacoes SET
+                numero_processo         = ?,
+                numero_ip               = ?,
+                vara_id                 = ?,
+                peticionante            = ?,
+                crime_id                = ?,
+                cidade_id               = ?,
+                qtd_alvos_total         = ?,
+                tipo_sigilo             = ?,
+                senha_processo          = ?,
+                data_envio              = ?,
+                data_ultima_verificacao = ?,
+                status_id               = ?
+             WHERE id = ?`,
+            [
+                numero_processo, numero_ip,
+                vara_id, peticionante,
+                crime_id, cidade_id,
+                qtd_alvos_total || 0,
+                tipo_sigilo, senha_processo || null,
+                data_envio, data_ultima_verificacao || null,
+                status_id,
+                req.params.id,
+            ]
+        );
+
+        await conn.query('DELETE FROM representacao_pedidos WHERE representacao_id = ?', [req.params.id]);
+        for (const p of pedidos) {
+            await conn.query(
+                'INSERT INTO representacao_pedidos (representacao_id, tipo_pedido_id, qtd_alvos) VALUES (?,?,?)',
+                [req.params.id, p.tipo_pedido_id, p.qtd_alvos || 0]
+            );
+        }
+
+        await conn.commit();
+        res.json({ ok: true });
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
 });
 
 // ── EXCLUIR ──────────────────────────────────────────────────────────────────

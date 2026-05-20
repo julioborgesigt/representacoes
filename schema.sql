@@ -71,11 +71,7 @@ CREATE TABLE IF NOT EXISTS representacoes (
     crime_id             TINYINT UNSIGNED NOT NULL,
     cidade_id            TINYINT UNSIGNED NOT NULL,
 
-    -- Tipo de Pedido
-    tipo_pedido_id       TINYINT UNSIGNED NOT NULL,
-
     -- Controle de Alvos
-    qtd_alvos_pedido     SMALLINT UNSIGNED NOT NULL DEFAULT 0,
     qtd_alvos_total      SMALLINT UNSIGNED NOT NULL DEFAULT 0,
 
     -- Segurança
@@ -96,12 +92,11 @@ CREATE TABLE IF NOT EXISTS representacoes (
                              ON UPDATE CURRENT_TIMESTAMP,
 
     -- Chaves Estrangeiras
-    CONSTRAINT fk_rep_vara       FOREIGN KEY (vara_id)        REFERENCES varas(id),
-    CONSTRAINT fk_rep_crime      FOREIGN KEY (crime_id)       REFERENCES crimes(id),
-    CONSTRAINT fk_rep_cidade     FOREIGN KEY (cidade_id)      REFERENCES cidades(id),
-    CONSTRAINT fk_rep_tipo       FOREIGN KEY (tipo_pedido_id) REFERENCES tipos_pedido(id),
-    CONSTRAINT fk_rep_status     FOREIGN KEY (status_id)      REFERENCES status_pedido(id),
-    CONSTRAINT fk_rep_usuario    FOREIGN KEY (criado_por)     REFERENCES usuarios(id)
+    CONSTRAINT fk_rep_vara       FOREIGN KEY (vara_id)    REFERENCES varas(id),
+    CONSTRAINT fk_rep_crime      FOREIGN KEY (crime_id)   REFERENCES crimes(id),
+    CONSTRAINT fk_rep_cidade     FOREIGN KEY (cidade_id)  REFERENCES cidades(id),
+    CONSTRAINT fk_rep_status     FOREIGN KEY (status_id)  REFERENCES status_pedido(id),
+    CONSTRAINT fk_rep_usuario    FOREIGN KEY (criado_por) REFERENCES usuarios(id)
                                      ON DELETE SET NULL,
 
     INDEX idx_data_envio  (data_envio),
@@ -109,6 +104,17 @@ CREATE TABLE IF NOT EXISTS representacoes (
     INDEX idx_vara        (vara_id),
     INDEX idx_crime       (crime_id),
     INDEX idx_cidade      (cidade_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Pedidos vinculados a uma representação (1 representação → N pedidos)
+CREATE TABLE IF NOT EXISTS representacao_pedidos (
+    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    representacao_id INT UNSIGNED NOT NULL,
+    tipo_pedido_id   TINYINT UNSIGNED NOT NULL,
+    qtd_alvos        SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    CONSTRAINT fk_rp_rep  FOREIGN KEY (representacao_id) REFERENCES representacoes(id) ON DELETE CASCADE,
+    CONSTRAINT fk_rp_tipo FOREIGN KEY (tipo_pedido_id)   REFERENCES tipos_pedido(id),
+    INDEX idx_rp_rep (representacao_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET foreign_key_checks = 1;

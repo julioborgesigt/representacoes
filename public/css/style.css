@@ -168,6 +168,32 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     gap: 1rem;
 }
 
+/* Linha de um pedido dentro do container dinâmico */
+.pedido-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+    padding: .6rem .75rem;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: .5rem;
+}
+.pedido-row:last-child { margin-bottom: 0; }
+
+/* Badge de pedido na célula da tabela */
+.pedidos-cell { min-width: 180px; }
+.pedido-tag {
+    display: inline-block;
+    background: #e0e7ff;
+    color: #3730a3;
+    border-radius: 4px;
+    padding: .15rem .45rem;
+    font-size: .72rem;
+    margin: .1rem .15rem .1rem 0;
+    white-space: nowrap;
+}
+
 .modal-footer {
     display: flex;
     justify-content: flex-end;
