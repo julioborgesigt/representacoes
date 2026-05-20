@@ -14,6 +14,11 @@ async function init() {
 
     document.getElementById('fProcesso').addEventListener('input', onProcessoInput);
     document.getElementById('fIp').addEventListener('input', onIpInput);
+    document.getElementById('btnImportarCSV').addEventListener('click', abrirImportacao);
+    document.getElementById('inputCSV').addEventListener('change', processarCSV);
+    document.getElementById('btnCancelarImport').addEventListener('click', fecharModalImport);
+    document.getElementById('btnFecharImport').addEventListener('click', fecharModalImport);
+    document.getElementById('btnConfirmarImport').addEventListener('click', confirmarImportacao);
     document.getElementById('btnFiltrar').addEventListener('click', carregarRepresentacoes);
     document.getElementById('btnLimpar').addEventListener('click', limparFiltros);
     document.getElementById('btnNovo').addEventListener('click', abrirModalNovo);
@@ -339,6 +344,188 @@ async function excluir(id) {
     if (!confirm('Confirma a exclusão desta representação?')) return;
     await fetch(`/api/representacoes/${id}`, { method: 'DELETE' });
     carregarRepresentacoes();
+}
+
+// ── Importação CSV ────────────────────────────────────────────────────────────
+let linhasCSV = [];
+
+function abrirImportacao() {
+    document.getElementById('inputCSV').value = '';
+    document.getElementById('inputCSV').click();
+}
+
+async function processarCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const texto  = await file.text();
+    const matriz = parsearCSV(texto);
+
+    if (matriz.length < 2) {
+        alert('O arquivo CSV está vazio ou no formato incorreto.');
+        return;
+    }
+
+    const cabecalho = matriz[0].map(c => normalizarChave(c));
+    const idx       = mapearColunas(cabecalho);
+
+    if (idx.numeroProcesso === -1) {
+        alert('Coluna "Número do processo" não encontrada no CSV.');
+        return;
+    }
+
+    linhasCSV = [];
+    for (let i = 1; i < matriz.length; i++) {
+        const row  = matriz[i];
+        const proc = row[idx.numeroProcesso]?.trim();
+        if (!proc) continue;
+        linhasCSV.push({
+            numero_processo:   proc,
+            data_envio:        converterData(idx.dataHora >= 0 ? row[idx.dataHora]?.trim() : ''),
+            assunto_principal: idx.assuntoPrincipal >= 0 ? row[idx.assuntoPrincipal]?.trim() : '',
+            situacao:          idx.situacao >= 0 ? row[idx.situacao]?.trim() : '',
+        });
+    }
+
+    if (linhasCSV.length === 0) {
+        alert('Nenhuma linha válida encontrada no arquivo.');
+        return;
+    }
+
+    renderPreviewImportacao();
+    document.getElementById('importErro').classList.add('hidden');
+    document.getElementById('modalImport').classList.remove('hidden');
+}
+
+function normalizarChave(str) {
+    return str.toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .trim();
+}
+
+function mapearColunas(cab) {
+    const idx = { dataHora: -1, numeroProcesso: -1, assuntoPrincipal: -1, situacao: -1 };
+    cab.forEach((h, i) => {
+        if (/data|hora/.test(h))             idx.dataHora         = i;
+        if (/numero.*processo|processo/.test(h)) idx.numeroProcesso = i;
+        if (/assunto/.test(h))               idx.assuntoPrincipal = i;
+        if (/situac/.test(h))                idx.situacao         = i;
+    });
+    return idx;
+}
+
+function converterData(str) {
+    if (!str) return null;
+    const m = str.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+    return null;
+}
+
+function parsearCSV(texto) {
+    texto = texto.replace(/^﻿/, '');
+    const primeiraLinha = texto.split(/\r?\n/)[0];
+    const sep = (primeiraLinha.match(/;/g)?.length ?? 0) > (primeiraLinha.match(/,/g)?.length ?? 0) ? ';' : ',';
+
+    const linhas = [];
+    let dentro = false, campo = '', linha = [];
+
+    for (let i = 0; i < texto.length; i++) {
+        const c = texto[i];
+        if (c === '"') {
+            if (dentro && texto[i + 1] === '"') { campo += '"'; i++; }
+            else dentro = !dentro;
+        } else if (c === sep && !dentro) {
+            linha.push(campo); campo = '';
+        } else if ((c === '\n' || c === '\r') && !dentro) {
+            if (c === '\r' && texto[i + 1] === '\n') i++;
+            linha.push(campo);
+            if (linha.some(c => c.trim())) linhas.push(linha);
+            linha = []; campo = '';
+        } else {
+            campo += c;
+        }
+    }
+    if (linha.length) { linha.push(campo); if (linha.some(c => c.trim())) linhas.push(linha); }
+
+    return linhas;
+}
+
+function renderPreviewImportacao() {
+    const resumo = document.getElementById('importResumo');
+    resumo.textContent = `${linhasCSV.length} linha${linhasCSV.length !== 1 ? 's' : ''} encontrada${linhasCSV.length !== 1 ? 's' : ''} no arquivo.`;
+    resumo.classList.remove('hidden');
+
+    const rows = linhasCSV.map(l => `
+        <tr>
+            <td>${esc(l.numero_processo)}</td>
+            <td>${l.data_envio ? formatarData(l.data_envio) : '—'}</td>
+            <td>${esc(l.assunto_principal || '—')}</td>
+            <td>${esc(l.situacao || '—')}</td>
+        </tr>`).join('');
+
+    document.getElementById('importTabela').innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Nº do Processo</th>
+                    <th>Data de Envio</th>
+                    <th>Assunto Principal</th>
+                    <th>Situação</th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+}
+
+async function confirmarImportacao() {
+    const erroEl = document.getElementById('importErro');
+    const btn    = document.getElementById('btnConfirmarImport');
+
+    btn.disabled    = true;
+    btn.textContent = 'Importando…';
+    erroEl.classList.add('hidden');
+
+    try {
+        const resp = await fetch('/api/representacoes/importar', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ linhas: linhasCSV }),
+        });
+        const dados = await resp.json();
+
+        if (!resp.ok) {
+            erroEl.textContent = dados.erro || 'Erro ao importar.';
+            erroEl.classList.remove('hidden');
+            return;
+        }
+
+        fecharModalImport();
+        await carregarRepresentacoes();
+        mostrarToast(
+            `Importação concluída — criados: ${dados.criados}, ` +
+            `atualizados: ${dados.atualizados}, sem alteração: ${dados.sem_alteracao}.`
+        );
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Confirmar Importação';
+    }
+}
+
+function fecharModalImport() {
+    document.getElementById('modalImport').classList.add('hidden');
+    document.getElementById('importTabela').innerHTML = '';
+    document.getElementById('importResumo').classList.add('hidden');
+    linhasCSV = [];
+}
+
+function mostrarToast(msg) {
+    const t = document.createElement('div');
+    t.className   = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 6000);
 }
 
 // ── Máscaras de entrada ───────────────────────────────────────────────────────
