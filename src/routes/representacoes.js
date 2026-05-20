@@ -198,6 +198,88 @@ router.put('/representacoes/:id', requireLogin, async (req, res) => {
     }
 });
 
+// ── IMPORTAR CSV ─────────────────────────────────────────────────────────────
+router.post('/representacoes/importar', requireLogin, async (req, res) => {
+    const { linhas } = req.body;
+    if (!Array.isArray(linhas) || linhas.length === 0)
+        return res.status(400).json({ erro: 'Nenhuma linha recebida.' });
+
+    const [crimes]  = await pool.query('SELECT id, nome FROM crimes');
+    const [status]  = await pool.query('SELECT id, nome FROM status_pedido ORDER BY ordem');
+    const [varas]   = await pool.query('SELECT id FROM varas   ORDER BY id LIMIT 1');
+    const [cidades] = await pool.query('SELECT id FROM cidades ORDER BY id LIMIT 1');
+
+    const defaultVaraId   = varas[0]?.id   ?? 1;
+    const defaultCidadeId = cidades[0]?.id ?? 1;
+    const defaultStatusId = status[0]?.id  ?? 1;
+    const defaultCrimeId  = crimes[0]?.id  ?? 1;
+
+    function matchNome(lista, nome) {
+        if (!nome) return null;
+        const q = nome.toLowerCase().trim();
+        return lista.find(i => i.nome.toLowerCase() === q)?.id
+            ?? lista.find(i => q.includes(i.nome.toLowerCase()) || i.nome.toLowerCase().includes(q))?.id
+            ?? null;
+    }
+
+    const resultado = { criados: 0, atualizados: 0, sem_alteracao: 0 };
+    const conn = await pool.getConnection();
+    await conn.beginTransaction();
+    try {
+        for (const l of linhas) {
+            const { numero_processo, data_envio, assunto_principal, situacao } = l;
+            if (!numero_processo) continue;
+
+            const crimeId = matchNome(crimes, assunto_principal) ?? defaultCrimeId;
+
+            const [exist] = await conn.query(
+                'SELECT id, data_envio, crime_id FROM representacoes WHERE numero_processo = ?',
+                [numero_processo]
+            );
+
+            if (exist.length > 0) {
+                const rep    = exist[0];
+                const dataDB = rep.data_envio instanceof Date
+                    ? rep.data_envio.toISOString().slice(0, 10)
+                    : String(rep.data_envio ?? '').slice(0, 10);
+                const mudou  = (data_envio && dataDB !== data_envio) || rep.crime_id !== crimeId;
+
+                if (mudou) {
+                    await conn.query(
+                        'UPDATE representacoes SET data_envio = ?, crime_id = ? WHERE id = ?',
+                        [data_envio || dataDB, crimeId, rep.id]
+                    );
+                    resultado.atualizados++;
+                } else {
+                    resultado.sem_alteracao++;
+                }
+            } else {
+                const statusId = matchNome(status, situacao) ?? defaultStatusId;
+                await conn.query(
+                    `INSERT INTO representacoes
+                     (numero_processo, numero_ip, vara_id, peticionante, crime_id, cidade_id,
+                      qtd_alvos_total, tipo_sigilo, senha_processo,
+                      data_envio, data_ultima_verificacao, status_id, criado_por)
+                     VALUES (?, '', ?, '', ?, ?, 0, 'segredo_justica', NULL, ?, NULL, ?, ?)`,
+                    [
+                        numero_processo, defaultVaraId, crimeId, defaultCidadeId,
+                        data_envio || new Date().toISOString().slice(0, 10),
+                        statusId, req.session.usuario.id,
+                    ]
+                );
+                resultado.criados++;
+            }
+        }
+        await conn.commit();
+        res.json(resultado);
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
+});
+
 // ── EXCLUIR ──────────────────────────────────────────────────────────────────
 router.delete('/representacoes/:id', requireLogin, async (req, res) => {
     await pool.query('DELETE FROM representacoes WHERE id = ?', [req.params.id]);

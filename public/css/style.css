@@ -365,6 +365,48 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     border-top: 1px solid var(--border);
 }
 
+/* ── Importação CSV ──────────────────────────────────────────────────────── */
+.modal-box-lg { max-width: 900px; }
+
+.import-resumo {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: var(--radius);
+    padding: .55rem 1rem;
+    font-size: .85rem;
+    color: #0c4a6e;
+    margin-bottom: .9rem;
+}
+
+.import-tabela-wrap {
+    overflow: auto;
+    max-height: 52vh;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+.import-tabela-wrap table { border: none; font-size: .8rem; min-width: 600px; }
+.import-tabela-wrap thead th { position: sticky; top: 0; background: #f1f5f9; z-index: 1; }
+
+/* Toast de resultado */
+.toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(1.5rem);
+    background: #1e293b;
+    color: #fff;
+    padding: .65rem 1.25rem;
+    border-radius: 8px;
+    font-size: .85rem;
+    box-shadow: 0 8px 24px #0004;
+    opacity: 0;
+    transition: opacity .3s, transform .3s;
+    z-index: 300;
+    white-space: nowrap;
+    pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
 /* ── Botões ───────────────────────────────────────────────────────────────── */
 .btn {
     padding: .45rem 1.1rem;

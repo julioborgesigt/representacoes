@@ -12,6 +12,11 @@
 <header class="topbar">
     <span class="topbar-title">Representações Policiais</span>
     <div class="topbar-actions">
+        <input type="file" id="inputCSV" accept=".csv" class="hidden">
+        <button id="btnImportarCSV" class="btn btn-ghost">
+            <span class="btn-label-full">Importar CSV</span>
+            <span class="btn-label-short">CSV</span>
+        </button>
         <button id="btnNovo" class="btn btn-primary">
             <span class="btn-label-full">+ Nova Representação</span>
             <span class="btn-label-short">+ Nova</span>
@@ -213,6 +218,24 @@
                 <button type="submit" class="btn btn-primary">Salvar</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- ── MODAL IMPORTAÇÃO CSV ──────────────────────────────────────────────── -->
+<div id="modalImport" class="modal hidden" role="dialog" aria-modal="true" aria-label="Importar CSV">
+    <div class="modal-backdrop"></div>
+    <div class="modal-box modal-box-lg">
+        <div class="modal-header">
+            <h2>Importar CSV — Pré-visualização</h2>
+            <button type="button" class="modal-close" id="btnFecharImport">&times;</button>
+        </div>
+        <div id="importResumo" class="import-resumo hidden"></div>
+        <div id="importTabela" class="import-tabela-wrap"></div>
+        <p id="importErro" class="erro hidden"></p>
+        <div class="modal-footer">
+            <button type="button" id="btnCancelarImport" class="btn btn-outline">Cancelar</button>
+            <button type="button" id="btnConfirmarImport" class="btn btn-primary">Confirmar Importação</button>
+        </div>
     </div>
 </div>
 
