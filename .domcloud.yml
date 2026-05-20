@@ -19,17 +19,7 @@ nginx:
       - ADMIN_SENHA=Admin@123
 
 commands:
-  - |
-    cat > .env <<'EOF'
-    NODE_ENV=production
-    DB_HOST=sao.domcloud.co
-    DB_USER=nome-do-seu-usuario
-    DB_PASS=sua-senha-domcloud
-    DB_NAME=nome_do_banco
-    SESSION_SECRET=cole_aqui_uma_string_aleatoria_longa
-    ADMIN_SENHA=Admin@123
-    EOF
-  - sed -i 's/^[[:space:]]*//' .env
+  - printf 'NODE_ENV=production\nDB_HOST=sao.domcloud.co\nDB_USER=nome-do-seu-usuario\nDB_PASS=sua-senha-domcloud\nDB_NAME=nome_do_banco\nSESSION_SECRET=cole_aqui_uma_string_aleatoria_longa\nADMIN_SENHA=Admin@123\n' > .env
   - git pull origin main
   - npm install
   - mkdir -p tmp
