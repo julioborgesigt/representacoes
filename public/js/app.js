@@ -206,7 +206,7 @@ function criarLinha(r) {
         <td class="col-detalhe">${esc(r.cidade)}</td>
         <td class="col-detalhe pedidos-cell">${pedidosHTML}</td>
         <td class="col-detalhe" style="text-align:center">${r.qtd_alvos_total}</td>
-        <td class="col-simples">${r.observacoes ? esc(r.observacoes) : '<span style="color:#94a3b8">—</span>'}</td>
+        <td class="col-simples col-obs">${r.observacoes ? esc(r.observacoes) : '<span style="color:#94a3b8">—</span>'}</td>
         <td class="col-detalhe">${dataEnvio}</td>
         <td class="col-detalhe">${dataVerif}</td>
         <td class="col-simples">
