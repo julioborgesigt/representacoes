@@ -214,7 +214,7 @@ function criarLinha(r) {
             ${esc(r.status)}
           </span>
         </td>
-        <td class="col-simples" style="white-space:nowrap">
+        <td class="col-simples td-acoes">
             <button class="btn btn-sm btn-edit"   data-action="editar"  title="Editar" aria-label="Editar">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>

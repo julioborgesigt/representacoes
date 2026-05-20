@@ -189,6 +189,8 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     white-space: nowrap;
 }
 
+.td-acoes { white-space: nowrap; }
+
 .pedidos-cell { min-width: 140px; }
 .pedido-tag {
     display: inline-block;
@@ -586,4 +588,36 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
 
     /* Login card: padding menor */
     .login-card { padding: 2rem 1.5rem 1.5rem; }
+}
+
+/* ── Telas muito pequenas (≤ 480px): tabela simplificada sem scroll ──────── */
+@media (max-width: 480px) {
+    .tabela-wrapper { padding: .4rem .2rem; }
+
+    .modo-simples th,
+    .modo-simples td {
+        font-size: .67rem;
+        padding: .28rem .18rem;
+    }
+
+    /* Badge de situação: permite quebra e reduz tamanho */
+    .badge-status {
+        white-space: normal;
+        font-size: .62rem;
+        padding: .12rem .3rem;
+        text-align: center;
+        line-height: 1.3;
+    }
+
+    /* Botões de ação: padding mínimo */
+    .btn-edit,
+    .btn-delete { padding: .22rem .28rem; }
+
+    /* Célula de ações: flex para alinhar lado a lado sem forçar nowrap */
+    .td-acoes {
+        white-space: normal;
+        display: flex;
+        gap: 3px;
+        align-items: center;
+    }
 }
