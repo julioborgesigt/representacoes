@@ -395,31 +395,30 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
 }
 
 /* ── Modal Senha ─────────────────────────────────────────────────────────── */
-.modal-box-sm { max-width: 380px; }
+.modal-box-sm { max-width: 280px; }
 
 .senha-modal-body {
     display: flex;
     flex-direction: column;
-    gap: .85rem;
-    padding: 1.25rem 0 .25rem;
+    gap: .65rem;
+    padding: .9rem 0 .1rem;
 }
 
 .senha-campo {
     background: #f8fafc;
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    padding: .75rem 1rem;
+    padding: .5rem .75rem;
     font-family: monospace;
-    font-size: 1.15rem;
-    letter-spacing: .08em;
+    font-size: 1.05rem;
+    letter-spacing: .1em;
     text-align: center;
     color: var(--text);
-    word-break: break-all;
 }
 
 .copiado-msg {
     text-align: center;
-    font-size: .82rem;
+    font-size: .78rem;
     font-weight: 600;
     color: #16a34a;
 }
