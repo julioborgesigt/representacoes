@@ -1,6 +1,9 @@
 // ── Estado global ────────────────────────────────────────────────────────────
 let dominios = {};
 
+const REGEX_PROCESSO = /^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/;
+const REGEX_IP       = /^\d{1,10}-\d{5}\/\d{4}$/;
+
 // ── Inicialização ────────────────────────────────────────────────────────────
 async function init() {
     await carregarDominios();
@@ -9,6 +12,8 @@ async function init() {
     await carregarRepresentacoes();
     initMobile();
 
+    document.getElementById('fProcesso').addEventListener('input', onProcessoInput);
+    document.getElementById('fIp').addEventListener('input', onIpInput);
     document.getElementById('btnFiltrar').addEventListener('click', carregarRepresentacoes);
     document.getElementById('btnLimpar').addEventListener('click', limparFiltros);
     document.getElementById('btnNovo').addEventListener('click', abrirModalNovo);
@@ -268,6 +273,22 @@ async function salvarRepresentacao(e) {
     const erroEl = document.getElementById('formErro');
     erroEl.classList.add('hidden');
 
+    const processo = document.getElementById('fProcesso').value.trim();
+    const ip       = document.getElementById('fIp').value.trim();
+
+    if (!REGEX_PROCESSO.test(processo)) {
+        erroEl.textContent = 'Nº do Processo inválido. Formato esperado: 0200874-18.2026.8.06.0302';
+        erroEl.classList.remove('hidden');
+        document.getElementById('fProcesso').focus();
+        return;
+    }
+    if (!REGEX_IP.test(ip)) {
+        erroEl.textContent = 'Nº do IP inválido. Formato esperado: 479-00350/2026';
+        erroEl.classList.remove('hidden');
+        document.getElementById('fIp').focus();
+        return;
+    }
+
     const pedidos = coletarPedidos();
     if (pedidos.some(p => !p.tipo_pedido_id)) {
         erroEl.textContent = 'Selecione o tipo de pedido para todos os itens.';
@@ -318,6 +339,33 @@ async function excluir(id) {
     if (!confirm('Confirma a exclusão desta representação?')) return;
     await fetch(`/api/representacoes/${id}`, { method: 'DELETE' });
     carregarRepresentacoes();
+}
+
+// ── Máscaras de entrada ───────────────────────────────────────────────────────
+function onProcessoInput(e) {
+    const el     = e.target;
+    const start  = el.selectionStart;
+    const before = el.value.length;
+    const digits = el.value.replace(/\D/g, '').slice(0, 20);
+
+    let result = '';
+    for (let i = 0; i < digits.length; i++) {
+        if (i === 7)  result += '-';
+        if (i === 9)  result += '.';
+        if (i === 13) result += '.';
+        if (i === 14) result += '.';
+        if (i === 16) result += '.';
+        result += digits[i];
+    }
+
+    el.value = result;
+    // Reposiciona cursor ajustando pelos separadores inseridos
+    const added = result.length - before;
+    el.setSelectionRange(start + added, start + added);
+}
+
+function onIpInput(e) {
+    e.target.value = e.target.value.replace(/[^\d\-\/]/g, '');
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
