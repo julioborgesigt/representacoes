@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Representações Policiais</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="login-page">
+    <div class="login-card">
+        <h1>Representações Policiais</h1>
+        <p class="login-sub">Acesso Restrito</p>
+        <form id="formLogin">
+            <div class="field">
+                <label for="login">Usuário</label>
+                <input id="login" name="login" type="text" autocomplete="username" required>
+            </div>
+            <div class="field">
+                <label for="senha">Senha</label>
+                <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+            </div>
+            <p id="loginErro" class="erro hidden"></p>
+            <button type="submit">Entrar</button>
+        </form>
+    </div>
+    <script>
+        document.getElementById('formLogin').addEventListener('submit', async e => {
+            e.preventDefault();
+            const erroEl = document.getElementById('loginErro');
+            erroEl.classList.add('hidden');
+
+            const resp = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    login: e.target.login.value.trim(),
+                    senha: e.target.senha.value,
+                }),
+            });
+
+            if (resp.ok) {
+                location.href = '/';
+            } else {
+                const { erro } = await resp.json();
+                erroEl.textContent = erro;
+                erroEl.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

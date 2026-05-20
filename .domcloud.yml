@@ -1,0 +1,19 @@
+# Configuração de deploy para DomCloud (domcloud.co)
+# Referência: https://domcloud.co/docs/deployment
+
+source:
+  repository: https://github.com/julioborgesigt/representacoes
+
+features:
+  - node: lts
+  - mysql: true
+
+nginx:
+  root: public_html/public
+  passenger:
+    enabled: "on"
+    app_start_command: "node src/server.js"
+
+commands:
+  - npm install --omit=dev
+  - npm run setup

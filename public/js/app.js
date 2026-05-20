@@ -1,0 +1,258 @@
+// ── Estado global ────────────────────────────────────────────────────────────
+let dominios = {};
+
+// ── Inicialização ────────────────────────────────────────────────────────────
+async function init() {
+    await carregarDominios();
+    preencherFiltrosAno();
+    definirFiltrosIniciais();
+    await carregarRepresentacoes();
+
+    // Eventos de filtro
+    document.getElementById('btnFiltrar').addEventListener('click', carregarRepresentacoes);
+    document.getElementById('btnLimpar').addEventListener('click', limparFiltros);
+
+    // Modal
+    document.getElementById('btnNovo').addEventListener('click', abrirModalNovo);
+    document.getElementById('btnCancelar').addEventListener('click', fecharModal);
+    document.getElementById('modalBackdrop').addEventListener('click', fecharModal);
+    document.getElementById('formRep').addEventListener('submit', salvarRepresentacao);
+    document.getElementById('fSemSenha').addEventListener('change', toggleSenha);
+}
+
+// ── Domínios ─────────────────────────────────────────────────────────────────
+async function carregarDominios() {
+    const resp = await fetch('/api/dominios');
+    dominios = await resp.json();
+
+    preencherSelect('fVara',       dominios.varas);
+    preencherSelect('fCrime',      dominios.crimes);
+    preencherSelect('fCidade',     dominios.cidades);
+    preencherSelect('fStatus',     dominios.statusList);
+    preencherSelect('fVaraForm',   dominios.varas,       true);
+    preencherSelect('fCrimeForm',  dominios.crimes,      true);
+    preencherSelect('fCidadeForm', dominios.cidades,     true);
+    preencherSelect('fTipoPedido', dominios.tiposPedido, true);
+    preencherSelect('fStatusForm', dominios.statusList,  true);
+}
+
+function preencherSelect(id, lista, semVazio = false) {
+    const el = document.getElementById(id);
+    if (!semVazio) el.innerHTML = '<option value="">Todos</option>';
+    else           el.innerHTML = '<option value="">— selecione —</option>';
+    lista.forEach(({ id: val, nome }) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = nome;
+        el.appendChild(opt);
+    });
+}
+
+// ── Filtros ───────────────────────────────────────────────────────────────────
+function preencherFiltrosAno() {
+    const sel = document.getElementById('fAno');
+    const anoAtual = new Date().getFullYear();
+    for (let a = anoAtual; a >= anoAtual - 5; a--) {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        sel.appendChild(opt);
+    }
+}
+
+function definirFiltrosIniciais() {
+    const hoje = new Date();
+    document.getElementById('fAno').value = hoje.getFullYear();
+    document.getElementById('fMes').value = hoje.getMonth() + 1;
+}
+
+function limparFiltros() {
+    definirFiltrosIniciais();
+    ['fVara','fCrime','fCidade','fStatus'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    carregarRepresentacoes();
+}
+
+// ── Tabela ────────────────────────────────────────────────────────────────────
+async function carregarRepresentacoes() {
+    const params = new URLSearchParams({
+        ano:       document.getElementById('fAno').value    || '',
+        mes:       document.getElementById('fMes').value    || '',
+        vara_id:   document.getElementById('fVara').value   || '',
+        crime_id:  document.getElementById('fCrime').value  || '',
+        cidade_id: document.getElementById('fCidade').value || '',
+        status_id: document.getElementById('fStatus').value || '',
+    });
+
+    const resp = await fetch(`/api/representacoes?${params}`);
+    const lista = await resp.json();
+
+    const tbody   = document.getElementById('tbodyRep');
+    const msgVazia = document.getElementById('msgVazia');
+    tbody.innerHTML = '';
+
+    if (!lista.length) {
+        msgVazia.classList.remove('hidden');
+        return;
+    }
+    msgVazia.classList.add('hidden');
+
+    lista.forEach(r => tbody.appendChild(criarLinha(r)));
+}
+
+function criarLinha(r) {
+    const tr = document.createElement('tr');
+    tr.dataset.status = r.status;
+
+    const dataEnvio = formatarData(r.data_envio);
+    const dataVerif = r.data_ultima_verificacao ? formatarData(r.data_ultima_verificacao) : '—';
+    const senha     = r.senha_processo ? '••••••' : 'Sem senha';
+    const sigilo    = r.tipo_sigilo === 'sigilo_absoluto' ? 'Sigilo Absoluto' : 'Segredo de Justiça';
+
+    tr.innerHTML = `
+        <td>${esc(r.numero_processo)}</td>
+        <td>${esc(r.numero_ip)}</td>
+        <td>${esc(r.vara)}</td>
+        <td>${esc(r.peticionante)}</td>
+        <td>${esc(r.crime)}</td>
+        <td>${esc(r.cidade)}</td>
+        <td>${esc(r.tipo_pedido)}</td>
+        <td style="text-align:center">${r.qtd_alvos_pedido}</td>
+        <td style="text-align:center">${r.qtd_alvos_total}</td>
+        <td>${sigilo}</td>
+        <td>${dataEnvio}</td>
+        <td>${dataVerif}</td>
+        <td>
+          <span class="badge-status"
+                style="background:${r.status_cor};color:#1e293b">
+            ${esc(r.status)}
+          </span>
+        </td>
+        <td style="white-space:nowrap">
+            <button class="btn btn-sm btn-edit"   onclick="abrirModalEditar(${r.id})">Editar</button>
+            <button class="btn btn-sm btn-delete" onclick="excluir(${r.id})">Excluir</button>
+        </td>
+    `;
+    return tr;
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function abrirModalNovo() {
+    document.getElementById('modalTitulo').textContent = 'Nova Representação';
+    document.getElementById('formRep').reset();
+    document.getElementById('fId').value = '';
+    document.getElementById('fSenha').disabled = false;
+    document.getElementById('fDataEnvio').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('formErro').classList.add('hidden');
+    document.getElementById('modal').classList.remove('hidden');
+}
+
+async function abrirModalEditar(id) {
+    document.getElementById('modalTitulo').textContent = 'Editar Representação';
+    document.getElementById('formErro').classList.add('hidden');
+
+    const resp = await fetch(`/api/representacoes/${id}`);
+    const r    = await resp.json();
+
+    document.getElementById('fId').value               = r.id;
+    document.getElementById('fProcesso').value          = r.numero_processo;
+    document.getElementById('fIp').value                = r.numero_ip;
+    document.getElementById('fVaraForm').value          = r.vara_id;
+    document.getElementById('fPeticionante').value      = r.peticionante;
+    document.getElementById('fCrimeForm').value         = r.crime_id;
+    document.getElementById('fCidadeForm').value        = r.cidade_id;
+    document.getElementById('fTipoPedido').value        = r.tipo_pedido_id;
+    document.getElementById('fAlvosPedido').value       = r.qtd_alvos_pedido;
+    document.getElementById('fAlvosTotal').value        = r.qtd_alvos_total;
+    document.getElementById('fSigilo').value            = r.tipo_sigilo;
+    document.getElementById('fSenha').value             = r.senha_processo || '';
+    document.getElementById('fSemSenha').checked        = !r.senha_processo;
+    document.getElementById('fSenha').disabled          = !r.senha_processo;
+    document.getElementById('fDataEnvio').value         = r.data_envio?.slice(0, 10) || '';
+    document.getElementById('fDataVerificacao').value   = r.data_ultima_verificacao?.slice(0, 10) || '';
+    document.getElementById('fStatusForm').value        = r.status_id;
+
+    document.getElementById('modal').classList.remove('hidden');
+}
+
+function fecharModal() {
+    document.getElementById('modal').classList.add('hidden');
+}
+
+function toggleSenha() {
+    const semSenha = document.getElementById('fSemSenha').checked;
+    const campoSenha = document.getElementById('fSenha');
+    campoSenha.disabled = semSenha;
+    if (semSenha) campoSenha.value = '';
+}
+
+// ── CRUD ──────────────────────────────────────────────────────────────────────
+async function salvarRepresentacao(e) {
+    e.preventDefault();
+    const erroEl = document.getElementById('formErro');
+    erroEl.classList.add('hidden');
+
+    const id = document.getElementById('fId').value;
+    const payload = {
+        numero_processo:         document.getElementById('fProcesso').value.trim(),
+        numero_ip:               document.getElementById('fIp').value.trim(),
+        vara_id:                 document.getElementById('fVaraForm').value,
+        peticionante:            document.getElementById('fPeticionante').value.trim(),
+        crime_id:                document.getElementById('fCrimeForm').value,
+        cidade_id:               document.getElementById('fCidadeForm').value,
+        tipo_pedido_id:          document.getElementById('fTipoPedido').value,
+        qtd_alvos_pedido:        document.getElementById('fAlvosPedido').value,
+        qtd_alvos_total:         document.getElementById('fAlvosTotal').value,
+        tipo_sigilo:             document.getElementById('fSigilo').value,
+        senha_processo:          document.getElementById('fSemSenha').checked
+                                    ? null
+                                    : document.getElementById('fSenha').value || null,
+        data_envio:              document.getElementById('fDataEnvio').value,
+        data_ultima_verificacao: document.getElementById('fDataVerificacao').value || null,
+        status_id:               document.getElementById('fStatusForm').value,
+    };
+
+    const url    = id ? `/api/representacoes/${id}` : '/api/representacoes';
+    const method = id ? 'PUT' : 'POST';
+
+    const resp = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+        const { erro } = await resp.json();
+        erroEl.textContent = erro || 'Erro ao salvar.';
+        erroEl.classList.remove('hidden');
+        return;
+    }
+
+    fecharModal();
+    carregarRepresentacoes();
+}
+
+async function excluir(id) {
+    if (!confirm('Confirma a exclusão desta representação?')) return;
+    await fetch(`/api/representacoes/${id}`, { method: 'DELETE' });
+    carregarRepresentacoes();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function formatarData(iso) {
+    if (!iso) return '—';
+    const [y, m, d] = iso.slice(0, 10).split('-');
+    return `${d}/${m}/${y}`;
+}
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+init().catch(console.error);
