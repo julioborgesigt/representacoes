@@ -192,6 +192,8 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     line-height: 1.3;
 }
 
+.col-obs { min-width: 88px; }
+
 .td-acoes {
     white-space: nowrap;
     vertical-align: middle;
