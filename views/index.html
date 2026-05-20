@@ -12,15 +12,32 @@
 <header class="topbar">
     <span class="topbar-title">Representações Policiais</span>
     <div class="topbar-actions">
-        <button id="btnNovo" class="btn btn-primary">+ Nova Representação</button>
+        <button id="btnNovo" class="btn btn-primary">
+            <span class="btn-label-full">+ Nova Representação</span>
+            <span class="btn-label-short">+ Nova</span>
+        </button>
         <form action="/logout" method="POST" style="display:inline">
             <button class="btn btn-ghost">Sair</button>
         </form>
     </div>
 </header>
 
+<!-- ── BARRA MOBILE (filtros + modo) ───────────────────────────────────────── -->
+<div class="mobile-bar" id="mobileBar">
+    <button class="btn-mobile-ctrl" id="btnToggleFiltros">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+        </svg>
+        Filtros
+    </button>
+    <div class="modo-switch">
+        <button class="btn-modo ativo" id="btnModoSimp">Simplificado</button>
+        <button class="btn-modo"        id="btnModoComp">Completo</button>
+    </div>
+</div>
+
 <!-- ── FILTROS ──────────────────────────────────────────────────────────────── -->
-<section class="filtros">
+<section class="filtros" id="filtrosBar">
     <div class="filtro-grupo">
         <label>Ano</label>
         <select id="fAno"></select>
@@ -32,7 +49,7 @@
             <option value="1">Janeiro</option><option value="2">Fevereiro</option>
             <option value="3">Março</option><option value="4">Abril</option>
             <option value="5">Maio</option><option value="6">Junho</option>
-            <option value="7">Julho</option><option value="8">Agosto</option>
+            <option value="7">Julho</option><option value value="8">Agosto</option>
             <option value="9">Setembro</option><option value="10">Outubro</option>
             <option value="11">Novembro</option><option value="12">Dezembro</option>
         </select>
@@ -58,23 +75,24 @@
 </section>
 
 <!-- ── TABELA ───────────────────────────────────────────────────────────────── -->
-<main class="tabela-wrapper">
+<main class="tabela-wrapper modo-simples" id="tabelaWrapper">
     <table id="tabelaRep">
         <thead>
             <tr>
-                <th>Processo</th>
-                <th>IP</th>
-                <th>Vara</th>
-                <th>Peticionante</th>
-                <th>Crime</th>
-                <th>Cidade</th>
-                <th>Pedidos</th>
-                <th>Alvos (Total)</th>
-                <th>Sigilo</th>
-                <th>Envio</th>
-                <th>Ult. Verificação</th>
-                <th>Situação</th>
-                <th>Ações</th>
+                <th class="col-simples">Processo</th>
+                <th class="col-simples">IP</th>
+                <th class="col-detalhe">Vara</th>
+                <th class="col-detalhe">Peticionante</th>
+                <th class="col-detalhe">Crime</th>
+                <th class="col-detalhe">Cidade</th>
+                <th class="col-detalhe">Pedidos</th>
+                <th class="col-detalhe">Alvos (Total)</th>
+                <th class="col-detalhe">Sigilo</th>
+                <th class="col-simples">Senha</th>
+                <th class="col-detalhe">Envio</th>
+                <th class="col-detalhe">Ult. Verificação</th>
+                <th class="col-simples">Situação</th>
+                <th class="col-simples">Ações</th>
             </tr>
         </thead>
         <tbody id="tbodyRep"></tbody>

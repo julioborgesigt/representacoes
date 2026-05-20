@@ -7,6 +7,7 @@ async function init() {
     preencherFiltrosAno();
     definirFiltrosIniciais();
     await carregarRepresentacoes();
+    initMobile();
 
     document.getElementById('btnFiltrar').addEventListener('click', carregarRepresentacoes);
     document.getElementById('btnLimpar').addEventListener('click', limparFiltros);
@@ -19,6 +20,27 @@ async function init() {
         const n = Number(document.getElementById('fNumPedidos').value);
         renderPedidoFields(n);
     });
+}
+
+// ── Mobile: filtros + modo de visualização ───────────────────────────────────
+function initMobile() {
+    document.getElementById('btnToggleFiltros').addEventListener('click', () => {
+        const bar = document.getElementById('filtrosBar');
+        const btn = document.getElementById('btnToggleFiltros');
+        const aberto = bar.classList.toggle('aberto');
+        btn.classList.toggle('ativo', aberto);
+    });
+
+    document.getElementById('btnModoSimp').addEventListener('click', () => setModo('simples'));
+    document.getElementById('btnModoComp').addEventListener('click', () => setModo('completo'));
+}
+
+function setModo(modo) {
+    const wrapper = document.getElementById('tabelaWrapper');
+    wrapper.classList.toggle('modo-simples',   modo === 'simples');
+    wrapper.classList.toggle('modo-completo',  modo === 'completo');
+    document.getElementById('btnModoSimp').classList.toggle('ativo', modo === 'simples');
+    document.getElementById('btnModoComp').classList.toggle('ativo', modo === 'completo');
 }
 
 // ── Domínios ─────────────────────────────────────────────────────────────────
@@ -161,23 +183,24 @@ function criarLinha(r) {
     const sigilo    = r.tipo_sigilo === 'sigilo_absoluto' ? 'Sigilo Absoluto' : 'Segredo de Justiça';
 
     tr.innerHTML = `
-        <td>${esc(r.numero_processo)}</td>
-        <td>${esc(r.numero_ip)}</td>
-        <td>${esc(r.vara)}</td>
-        <td>${esc(r.peticionante)}</td>
-        <td>${esc(r.crime)}</td>
-        <td>${esc(r.cidade)}</td>
-        <td class="pedidos-cell">${pedidosHTML}</td>
-        <td style="text-align:center">${r.qtd_alvos_total}</td>
-        <td>${sigilo}</td>
-        <td>${dataEnvio}</td>
-        <td>${dataVerif}</td>
-        <td>
+        <td class="col-simples">${esc(r.numero_processo)}</td>
+        <td class="col-simples">${esc(r.numero_ip)}</td>
+        <td class="col-detalhe">${esc(r.vara)}</td>
+        <td class="col-detalhe">${esc(r.peticionante)}</td>
+        <td class="col-detalhe">${esc(r.crime)}</td>
+        <td class="col-detalhe">${esc(r.cidade)}</td>
+        <td class="col-detalhe pedidos-cell">${pedidosHTML}</td>
+        <td class="col-detalhe" style="text-align:center">${r.qtd_alvos_total}</td>
+        <td class="col-detalhe">${sigilo}</td>
+        <td class="col-simples">${r.senha_processo ? '••••••' : '<span style="color:#94a3b8">—</span>'}</td>
+        <td class="col-detalhe">${dataEnvio}</td>
+        <td class="col-detalhe">${dataVerif}</td>
+        <td class="col-simples">
           <span class="badge-status" style="background:${r.status_cor};color:#1e293b">
             ${esc(r.status)}
           </span>
         </td>
-        <td style="white-space:nowrap">
+        <td class="col-simples" style="white-space:nowrap">
             <button class="btn btn-sm btn-edit"   onclick="abrirModalEditar(${r.id})">Editar</button>
             <button class="btn btn-sm btn-delete" onclick="excluir(${r.id})">Excluir</button>
         </td>
