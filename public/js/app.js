@@ -519,13 +519,15 @@ async function confirmarImportacao() {
         }
 
         fecharModalImport();
+        await carregarDominios();
         await carregarRepresentacoes();
         const partes = [
             `criados: ${dados.criados}`,
             `atualizados: ${dados.atualizados}`,
             `sem alteração: ${dados.sem_alteracao}`,
         ];
-        if (dados.ignorados > 0) partes.push(`ignorados (não cautelares): ${dados.ignorados}`);
+        if (dados.ignorados    > 0) partes.push(`ignorados (não cautelares): ${dados.ignorados}`);
+        if (dados.crimes_novos > 0) partes.push(`crimes cadastrados automaticamente: ${dados.crimes_novos}`);
         mostrarToast('Importação concluída — ' + partes.join(', ') + '.');
     } finally {
         btn.disabled    = false;

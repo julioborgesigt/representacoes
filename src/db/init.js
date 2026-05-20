@@ -96,6 +96,16 @@ export async function initDB() {
         console.log('[DB] Migração de tipos de pedido concluída.');
     }
 
+    // ── Migração: remover crimes abreviados do seed antigo (sem representações) ─
+    const crimesAntigos = ['Tráfico de drogas', 'Orcrim', 'Homicídio', 'SN Armas', 'Roubo', 'Latrocínio'];
+    const placeholders  = crimesAntigos.map(() => '?').join(',');
+    await pool.query(
+        `DELETE FROM crimes
+         WHERE nome IN (${placeholders})
+           AND id NOT IN (SELECT DISTINCT crime_id FROM representacoes)`,
+        crimesAntigos
+    ).catch(() => {});
+
     // ── Usuário admin (apenas se não existir) ────────────────────────────────
     const [[{ adminCount }]] = await pool.query(
         "SELECT COUNT(*) AS adminCount FROM usuarios WHERE login = 'admin'"

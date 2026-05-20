@@ -205,7 +205,7 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
         return res.status(400).json({ erro: 'Nenhuma linha recebida.' });
 
     const [tiposPedido] = await pool.query('SELECT id, nome FROM tipos_pedido');
-    const [crimes]      = await pool.query('SELECT id, nome FROM crimes');
+    const crimes        = (await pool.query('SELECT id, nome FROM crimes'))[0];
     const [status]      = await pool.query('SELECT id, nome FROM status_pedido ORDER BY ordem');
     const [varas]       = await pool.query('SELECT id FROM varas   ORDER BY id LIMIT 1');
     const [cidades]     = await pool.query('SELECT id FROM cidades ORDER BY id LIMIT 1');
@@ -213,7 +213,6 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
     const defaultVaraId   = varas[0]?.id   ?? 1;
     const defaultCidadeId = cidades[0]?.id ?? 1;
     const defaultStatusId = status[0]?.id  ?? 1;
-    const defaultCrimeId  = crimes[0]?.id  ?? 1;
 
     function matchExato(lista, nome) {
         if (!nome) return null;
@@ -230,7 +229,19 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
             ?? null;
     }
 
-    const resultado = { criados: 0, atualizados: 0, sem_alteracao: 0, ignorados: 0 };
+    // Busca crime por nome exato; se não existir, cria e atualiza o cache local
+    async function encontrarOuCriarCrime(conn, nome) {
+        if (!nome?.trim()) return crimes[0]?.id ?? 1;
+        const nomeTrimmed = nome.trim();
+        const existente   = matchExato(crimes, nomeTrimmed);
+        if (existente) return existente.id;
+        const [ins] = await conn.query('INSERT INTO crimes (nome) VALUES (?)', [nomeTrimmed]);
+        crimes.push({ id: ins.insertId, nome: nomeTrimmed });
+        return ins.insertId;
+    }
+
+    const resultado = { criados: 0, atualizados: 0, sem_alteracao: 0, ignorados: 0, crimes_novos: 0 };
+    const crimesAntes = crimes.length;
     const conn = await pool.getConnection();
     await conn.beginTransaction();
     try {
@@ -245,7 +256,7 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
                 continue;
             }
 
-            const crimeId = matchNome(crimes, assunto_principal) ?? defaultCrimeId;
+            const crimeId = await encontrarOuCriarCrime(conn, assunto_principal);
 
             const [exist] = await conn.query(
                 'SELECT id, data_envio, crime_id FROM representacoes WHERE numero_processo = ?',
@@ -290,6 +301,7 @@ router.post('/representacoes/importar', requireLogin, async (req, res) => {
                 resultado.criados++;
             }
         }
+        resultado.crimes_novos = crimes.length - crimesAntes;
         await conn.commit();
         res.json(resultado);
     } catch (err) {
