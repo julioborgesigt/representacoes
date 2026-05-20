@@ -210,6 +210,14 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     background: #fff;
     transition: border-color .15s, box-shadow .15s;
 }
+.field input[type="checkbox"] {
+    width: auto;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: none;
+}
 .field input:focus, .field select:focus {
     outline: none;
     border-color: var(--brand);
@@ -238,14 +246,39 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     box-shadow: 0 25px 60px #0004;
 }
 
-.modal-box h2 {
-    font-size: 1.1rem;
-    color: var(--brand);
-    font-weight: 700;
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding-bottom: 1rem;
     margin-bottom: 0;
     border-bottom: 2px solid var(--brand);
 }
+
+.modal-header h2 {
+    font-size: 1.1rem;
+    color: var(--brand);
+    font-weight: 700;
+    margin: 0;
+}
+
+.modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    flex-shrink: 0;
+}
+.modal-close:hover { background: #f1f5f9; color: var(--text); }
 
 /* Seções do formulário */
 .form-section {

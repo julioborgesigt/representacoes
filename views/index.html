@@ -104,7 +104,10 @@
 <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
     <div class="modal-backdrop" id="modalBackdrop"></div>
     <div class="modal-box">
-        <h2 id="modalTitulo">Nova Representação</h2>
+        <div class="modal-header">
+            <h2 id="modalTitulo">Nova Representação</h2>
+            <button type="button" class="modal-close" id="btnFecharModal" aria-label="Fechar">&times;</button>
+        </div>
         <form id="formRep" novalidate>
             <input type="hidden" id="fId">
 

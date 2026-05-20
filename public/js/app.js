@@ -13,7 +13,7 @@ async function init() {
     document.getElementById('btnLimpar').addEventListener('click', limparFiltros);
     document.getElementById('btnNovo').addEventListener('click', abrirModalNovo);
     document.getElementById('btnCancelar').addEventListener('click', fecharModal);
-    document.getElementById('modalBackdrop').addEventListener('click', fecharModal);
+    document.getElementById('btnFecharModal').addEventListener('click', fecharModal);
     document.getElementById('formRep').addEventListener('submit', salvarRepresentacao);
     document.getElementById('fSemSenha').addEventListener('change', toggleSenha);
     document.getElementById('fNumPedidos').addEventListener('change', () => {
