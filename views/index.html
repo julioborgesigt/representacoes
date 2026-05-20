@@ -90,86 +90,105 @@
         <form id="formRep" novalidate>
             <input type="hidden" id="fId">
 
-            <div class="form-grid">
-                <div class="field">
-                    <label>Nº do Processo *</label>
-                    <input id="fProcesso" required>
-                </div>
-                <div class="field">
-                    <label>Nº do IP *</label>
-                    <input id="fIp" required>
-                </div>
-                <div class="field">
-                    <label>Vara Destino *</label>
-                    <select id="fVaraForm" required></select>
-                </div>
-                <div class="field">
-                    <label>Peticionante *</label>
-                    <input id="fPeticionante" required>
-                </div>
-                <div class="field">
-                    <label>Crime *</label>
-                    <select id="fCrimeForm" required></select>
-                </div>
-                <div class="field">
-                    <label>Cidade do Crime *</label>
-                    <select id="fCidadeForm" required></select>
-                </div>
-                <div class="field">
-                    <label>Quantidade de Pedidos *</label>
-                    <select id="fNumPedidos">
-                        <option value="1">1 pedido</option>
-                        <option value="2">2 pedidos</option>
-                        <option value="3">3 pedidos</option>
-                        <option value="4">4 pedidos</option>
-                        <option value="5">5 pedidos</option>
-                        <option value="6">6 pedidos</option>
-                        <option value="7">7 pedidos</option>
-                        <option value="8">8 pedidos</option>
-                        <option value="9">9 pedidos</option>
-                    </select>
-                </div>
-                <div id="pedidosContainer" class="field-full"></div>
-                <div class="field field-full">
-                    <label>Qtd. Alvos Total *
-                        <span class="dica-alvo">⚠ Atenção: não duplique alvos com mais de um tipo de pedido.</span>
-                    </label>
-                    <input id="fAlvosTotal" type="number" min="0" value="0" required>
-                </div>
-                <div class="field">
-                    <label>Tipo de Sigilo *</label>
-                    <select id="fSigilo" required>
-                        <option value="segredo_justica">Segredo de Justiça</option>
-                        <option value="sigilo_absoluto">Sigilo Absoluto</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Senha do Processo</label>
-                    <div class="senha-wrap">
-                        <label class="check-label">
-                            <input type="checkbox" id="fSemSenha"> Sem senha
-                        </label>
-                        <input id="fSenha" placeholder="Digite a senha (opcional)">
+            <!-- SEÇÃO 1: Identificação -->
+            <div class="form-section">
+                <span class="form-section-title">Identificação</span>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Nº do Processo *</label>
+                        <input id="fProcesso" required placeholder="Ex: 0001234-00.2026">
+                    </div>
+                    <div class="field">
+                        <label>Nº do IP *</label>
+                        <input id="fIp" required placeholder="Ex: 0012/2026">
+                    </div>
+                    <div class="field">
+                        <label>Vara Destino *</label>
+                        <select id="fVaraForm" required></select>
+                    </div>
+                    <div class="field">
+                        <label>Peticionante *</label>
+                        <input id="fPeticionante" required placeholder="Nome do peticionante">
+                    </div>
+                    <div class="field">
+                        <label>Crime *</label>
+                        <select id="fCrimeForm" required></select>
+                    </div>
+                    <div class="field">
+                        <label>Cidade do Crime *</label>
+                        <select id="fCidadeForm" required></select>
                     </div>
                 </div>
-                <div class="field">
-                    <label>Data de Envio *</label>
-                    <input id="fDataEnvio" type="date" required>
+            </div>
+
+            <!-- SEÇÃO 2: Pedidos -->
+            <div class="form-section">
+                <div class="form-section-header">
+                    <span class="form-section-title">Pedidos</span>
+                    <div class="field-qty">
+                        <label>Quantidade</label>
+                        <select id="fNumPedidos">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="field">
-                    <label>Data Última Verificação</label>
-                    <input id="fDataVerificacao" type="date">
+                <div id="pedidosContainer"></div>
+                <div class="field alvos-total-field">
+                    <label>Qtd. Alvos Total *</label>
+                    <div class="alvos-total-wrap">
+                        <input id="fAlvosTotal" type="number" min="0" value="0" required>
+                        <span class="dica-alvo">⚠ Não duplique alvos com mais de um tipo de pedido.</span>
+                    </div>
                 </div>
-                <div class="field">
-                    <label>Situação *</label>
-                    <select id="fStatusForm" required></select>
+            </div>
+
+            <!-- SEÇÃO 3: Segurança e Controle -->
+            <div class="form-section">
+                <span class="form-section-title">Segurança e Controle</span>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Tipo de Sigilo *</label>
+                        <select id="fSigilo" required>
+                            <option value="segredo_justica">Segredo de Justiça</option>
+                            <option value="sigilo_absoluto">Sigilo Absoluto</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Senha do Processo</label>
+                        <div class="senha-wrap">
+                            <label class="check-label">
+                                <input type="checkbox" id="fSemSenha"> Sem senha
+                            </label>
+                            <input id="fSenha" placeholder="Digite a senha (opcional)">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Data de Envio *</label>
+                        <input id="fDataEnvio" type="date" required>
+                    </div>
+                    <div class="field">
+                        <label>Data Última Verificação</label>
+                        <input id="fDataVerificacao" type="date">
+                    </div>
+                    <div class="field">
+                        <label>Situação *</label>
+                        <select id="fStatusForm" required></select>
+                    </div>
                 </div>
             </div>
 
             <p id="formErro" class="erro hidden"></p>
 
             <div class="modal-footer">
-                <button type="button" id="btnCancelar" class="btn btn-ghost">Cancelar</button>
+                <button type="button" id="btnCancelar" class="btn btn-outline">Cancelar</button>
                 <button type="submit" class="btn btn-primary">Salvar</button>
             </div>
         </form>
