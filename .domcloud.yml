@@ -1,21 +1,26 @@
-# Configuração de deploy para DomCloud (domcloud.co)
-# Referência: https://domcloud.co/docs/deployment
-
-source:
-  repository: https://github.com/julioborgesigt/representacoes
-  branch: main   # ajuste se usar outra branch
+source: https://github.com/julioborgesigt/representacoes
 
 features:
-  - node: lts
-  - mysql: true
+  - node lts
+  - mysql
 
 nginx:
-  root: public_html        # raiz do repositório clonado
+  root: public_html/public
   passenger:
     enabled: "on"
-    # DomCloud injeta $PORT — o servidor deve escutar nessa porta
-    app_start_command: "env PORT=$PORT node src/server.js"
+    app_start_command: env PORT=$PORT npm start
+    env_var_list:
+      - NODE_ENV=production
+      - DB_HOST=sao.domcloud.co
+      - DB_USER=nome-do-seu-usuario
+      - DB_PASS=sua-senha-domcloud
+      - DB_NAME=nome_do_banco
+      - SESSION_SECRET=cole_aqui_uma_string_aleatoria_longa
+      - ADMIN_SENHA=Admin@123
 
 commands:
-  - npm install --omit=dev
-  - npm run setup
+  - git pull origin main
+  - npm install
+  - node src/utils/setup.js
+  - mkdir -p tmp
+  - touch tmp/restart.txt
