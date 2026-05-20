@@ -143,9 +143,8 @@ function preencherFiltrosAno() {
 }
 
 function definirFiltrosIniciais() {
-    const hoje = new Date();
-    document.getElementById('fAno').value = hoje.getFullYear();
-    document.getElementById('fMes').value = hoje.getMonth() + 1;
+    document.getElementById('fAno').value = new Date().getFullYear();
+    document.getElementById('fMes').value = '';
 }
 
 function limparFiltros() {
