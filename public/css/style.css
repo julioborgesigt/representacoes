@@ -139,7 +139,7 @@ body {
 .filtro-grupo select { padding: .35rem .5rem; border: 1px solid var(--border); border-radius: var(--radius); }
 
 /* ── Tabela ───────────────────────────────────────────────────────────────── */
-.tabela-wrapper { overflow-x: auto; padding: 1rem 1.25rem; }
+.tabela-wrapper { overflow-x: auto; padding: .75rem 1rem; }
 
 table {
     width: 100%;
@@ -149,19 +149,24 @@ table {
     border-radius: var(--radius);
     overflow: hidden;
     font-size: .8rem;
+    table-layout: auto;
 }
 th {
     background: #f1f5f9;
     font-weight: 600;
-    padding: .6rem .75rem;
+    padding: .6rem .6rem;
     text-align: left;
     border-bottom: 2px solid var(--border);
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    min-width: 56px;
 }
 td {
-    padding: .5rem .75rem;
+    padding: .5rem .6rem;
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 tr:last-child td { border-bottom: none; }
 
@@ -184,7 +189,7 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     white-space: nowrap;
 }
 
-.pedidos-cell { min-width: 180px; }
+.pedidos-cell { min-width: 140px; }
 .pedido-tag {
     display: inline-block;
     background: #e0e7ff;
@@ -193,7 +198,8 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     padding: .15rem .45rem;
     font-size: .72rem;
     margin: .1rem .15rem .1rem 0;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .msg-vazia { text-align: center; padding: 2rem; color: var(--muted); }
@@ -512,8 +518,8 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
 /* Desktop: sempre mostra tudo */
 .col-simples, .col-detalhe { display: table-cell; }
 
-/* ── Responsividade Mobile ───────────────────────────────────────────────── */
-@media (max-width: 768px) {
+/* ── Responsividade Mobile (< 1360px) ───────────────────────────────────── */
+@media (max-width: 1359px) {
 
     /* Topbar compacto */
     .topbar { padding: .6rem .9rem; }
