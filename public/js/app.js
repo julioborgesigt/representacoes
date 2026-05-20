@@ -34,6 +34,11 @@ async function init() {
 
 // ── Mobile: filtros + modo de visualização ───────────────────────────────────
 function initMobile() {
+    // Desktop ≥1360px: começa no modo completo
+    if (window.innerWidth >= 1360) {
+        setModo('completo');
+    }
+
     document.getElementById('btnToggleFiltros').addEventListener('click', () => {
         const bar = document.getElementById('filtrosBar');
         const btn = document.getElementById('btnToggleFiltros');
@@ -211,10 +216,14 @@ function criarLinha(r) {
           </span>
         </td>
         <td class="col-simples" style="white-space:nowrap">
-            <button class="btn btn-sm btn-edit"   onclick="abrirModalEditar(${r.id})">Editar</button>
-            <button class="btn btn-sm btn-delete" onclick="excluir(${r.id})">Excluir</button>
+            <button class="btn btn-sm btn-edit"   data-action="editar">Editar</button>
+            <button class="btn btn-sm btn-delete" data-action="excluir">Excluir</button>
         </td>
     `;
+
+    tr.querySelector('[data-action="editar"]').addEventListener('click', () => abrirModalEditar(r.id));
+    tr.querySelector('[data-action="excluir"]').addEventListener('click', () => excluir(r.id));
+
     return tr;
 }
 
