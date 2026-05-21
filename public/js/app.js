@@ -105,7 +105,7 @@ async function init() {
     document.getElementById('fSemSenha').addEventListener('change', toggleSenha);
     document.getElementById('fNumPedidos').addEventListener('change', () => {
         const n = Number(document.getElementById('fNumPedidos').value);
-        renderPedidoFields(n);
+        renderPedidoFields(n, coletarPedidos());
     });
 }
 
