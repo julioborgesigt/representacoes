@@ -1,14 +1,71 @@
 // ── Estado global ────────────────────────────────────────────────────────────
 let dominios = {};
 
-const REGEX_PROCESSO = /^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/;
-const REGEX_IP       = /^\d{1,10}-\d{5}\/\d{4}$/;
+const REGEX_PROCESSO  = /^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/;
+const REGEX_IP        = /^\d{1,10}-\d{5}\/\d{4}$/;
+const FILTROS_KEY     = 'rp_filtros';
+const ANO_PADRAO      = () => String(new Date().getFullYear());
+
+// ── Persistência de filtros ───────────────────────────────────────────────────
+function salvarFiltros() {
+    const crimes = Array.from(document.querySelectorAll('.crime-check:checked')).map(cb => cb.value);
+    localStorage.setItem(FILTROS_KEY, JSON.stringify({
+        ano:        document.getElementById('fAno').value,
+        mes:        document.getElementById('fMes').value,
+        dataInicio: document.getElementById('fDataInicio').value,
+        dataFim:    document.getElementById('fDataFim').value,
+        vara_id:    document.getElementById('fVara').value,
+        crimes,
+        cidade_id:  document.getElementById('fCidade').value,
+        status_id:  document.getElementById('fStatus').value,
+    }));
+}
+
+function carregarFiltrosSalvos() {
+    const raw = localStorage.getItem(FILTROS_KEY);
+    if (!raw) return false;
+    try {
+        const f = JSON.parse(raw);
+        if (f.ano)        document.getElementById('fAno').value    = f.ano;
+        if (f.mes != null) document.getElementById('fMes').value   = f.mes;
+        if (f.vara_id != null) document.getElementById('fVara').value   = f.vara_id;
+        if (f.cidade_id != null) document.getElementById('fCidade').value = f.cidade_id;
+        if (f.status_id != null) document.getElementById('fStatus').value = f.status_id;
+        if (f.dataInicio) document.getElementById('fDataInicio').value = f.dataInicio;
+        if (f.dataFim)    document.getElementById('fDataFim').value    = f.dataFim;
+        if (f.dataInicio || f.dataFim) atualizarIntervalo();
+        if (Array.isArray(f.crimes) && f.crimes.length) {
+            f.crimes.forEach(id => {
+                const cb = document.querySelector(`.crime-check[value="${id}"]`);
+                if (cb) cb.checked = true;
+            });
+            atualizarLabelCrime();
+        }
+        return true;
+    } catch { return false; }
+}
+
+function filtrosEstaoAtivos() {
+    if (document.getElementById('fAno').value !== ANO_PADRAO())       return true;
+    if (document.getElementById('fMes').value !== '')                  return true;
+    if (document.getElementById('fDataInicio').value)                  return true;
+    if (document.getElementById('fDataFim').value)                     return true;
+    if (document.getElementById('fVara').value)                        return true;
+    if (document.getElementById('fCidade').value)                      return true;
+    if (document.getElementById('fStatus').value)                      return true;
+    if (document.querySelectorAll('.crime-check:checked').length > 0)  return true;
+    return false;
+}
+
+function atualizarBtnLimpar() {
+    document.getElementById('btnLimpar').disabled = !filtrosEstaoAtivos();
+}
 
 // ── Inicialização ────────────────────────────────────────────────────────────
 async function init() {
     await carregarDominios();
     preencherFiltrosAno();
-    definirFiltrosIniciais();
+    if (!carregarFiltrosSalvos()) definirFiltrosIniciais();
     await carregarRepresentacoes();
     initMobile();
 
@@ -21,8 +78,14 @@ async function init() {
     document.getElementById('btnConfirmarImport').addEventListener('click', confirmarImportacao);
     document.getElementById('btnFiltrar').addEventListener('click', carregarRepresentacoes);
     document.getElementById('btnLimpar').addEventListener('click', limparFiltros);
-    document.getElementById('fDataInicio').addEventListener('change', atualizarIntervalo);
-    document.getElementById('fDataFim').addEventListener('change', atualizarIntervalo);
+    document.getElementById('fDataInicio').addEventListener('change', () => { atualizarIntervalo(); atualizarBtnLimpar(); });
+    document.getElementById('fDataFim').addEventListener('change',    () => { atualizarIntervalo(); atualizarBtnLimpar(); });
+
+    // Atualiza botão Limpar em tempo real ao mudar qualquer filtro
+    ['fAno','fMes','fVara','fCidade','fStatus'].forEach(id =>
+        document.getElementById(id).addEventListener('change', atualizarBtnLimpar)
+    );
+    document.getElementById('menuCrime').addEventListener('change', atualizarBtnLimpar);
 
     // Dropdown crime: abre/fecha
     document.getElementById('btnDropdownCrime').addEventListener('click', e => {
@@ -180,14 +243,13 @@ function definirFiltrosIniciais() {
 }
 
 function limparFiltros() {
+    localStorage.removeItem(FILTROS_KEY);
     definirFiltrosIniciais();
     ['fVara','fCidade','fStatus'].forEach(id => {
         document.getElementById(id).value = '';
     });
-    // Desmarca todos os crimes
     document.querySelectorAll('.crime-check').forEach(cb => cb.checked = false);
     atualizarLabelCrime();
-    // Limpa intervalo e reabilita ano/mês
     document.getElementById('fDataInicio').value = '';
     document.getElementById('fDataFim').value = '';
     atualizarIntervalo();
@@ -255,6 +317,9 @@ async function carregarRepresentacoes() {
     const tbody    = document.getElementById('tbodyRep');
     const msgVazia = document.getElementById('msgVazia');
     tbody.innerHTML = '';
+
+    salvarFiltros();
+    atualizarBtnLimpar();
 
     if (!lista.length) {
         msgVazia.classList.remove('hidden');
