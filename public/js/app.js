@@ -23,6 +23,16 @@ async function init() {
     document.getElementById('btnLimpar').addEventListener('click', limparFiltros);
     document.getElementById('fDataInicio').addEventListener('change', atualizarIntervalo);
     document.getElementById('fDataFim').addEventListener('change', atualizarIntervalo);
+
+    // Dropdown crime: abre/fecha
+    document.getElementById('btnDropdownCrime').addEventListener('click', e => {
+        e.stopPropagation();
+        document.getElementById('menuCrime').classList.toggle('hidden');
+    });
+    document.addEventListener('click', () => {
+        document.getElementById('menuCrime').classList.add('hidden');
+    });
+    document.getElementById('menuCrime').addEventListener('click', e => e.stopPropagation());
     document.getElementById('btnNovo').addEventListener('click', abrirModalNovo);
     document.getElementById('btnCancelar').addEventListener('click', fecharModal);
     document.getElementById('btnFecharModal').addEventListener('click', fecharModal);
@@ -67,14 +77,15 @@ async function carregarDominios() {
     const resp = await fetch('/api/dominios');
     dominios = await resp.json();
 
-    // Crime: multi-select sem opção "Todos" (sem seleção = todos)
-    const fCrime = document.getElementById('fCrime');
-    fCrime.innerHTML = '';
+    // Crime: dropdown com checkboxes
+    const menuCrime = document.getElementById('menuCrime');
+    menuCrime.innerHTML = '';
     dominios.crimes.forEach(({ id: val, nome }) => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = nome;
-        fCrime.appendChild(opt);
+        const lbl = document.createElement('label');
+        lbl.className = 'dropdown-check-item';
+        lbl.innerHTML = `<input type="checkbox" class="crime-check" value="${val}"> ${esc(nome)}`;
+        lbl.querySelector('input').addEventListener('change', atualizarLabelCrime);
+        menuCrime.appendChild(lbl);
     });
 
     // Status: mantém "Todos" e "Todos (menos concluídos)" do HTML, adiciona os do banco
@@ -173,13 +184,20 @@ function limparFiltros() {
     ['fVara','fCidade','fStatus'].forEach(id => {
         document.getElementById(id).value = '';
     });
-    // Deseleciona todos os crimes
-    Array.from(document.getElementById('fCrime').options).forEach(o => o.selected = false);
+    // Desmarca todos os crimes
+    document.querySelectorAll('.crime-check').forEach(cb => cb.checked = false);
+    atualizarLabelCrime();
     // Limpa intervalo e reabilita ano/mês
     document.getElementById('fDataInicio').value = '';
     document.getElementById('fDataFim').value = '';
     atualizarIntervalo();
     carregarRepresentacoes();
+}
+
+function atualizarLabelCrime() {
+    const n = document.querySelectorAll('.crime-check:checked').length;
+    document.getElementById('labelCrime').textContent =
+        n === 0 ? 'Todos' : `${n} selecionado${n > 1 ? 's' : ''}`;
 }
 
 function atualizarIntervalo() {
@@ -227,9 +245,9 @@ async function carregarRepresentacoes() {
     params.set('cidade_id', document.getElementById('fCidade').value || '');
     params.set('status_id', document.getElementById('fStatus').value || '');
 
-    // Crimes: múltipla seleção
-    Array.from(document.getElementById('fCrime').selectedOptions)
-        .forEach(o => params.append('crime_id', o.value));
+    // Crimes: checkboxes marcados
+    document.querySelectorAll('.crime-check:checked')
+        .forEach(cb => params.append('crime_id', cb.value));
 
     const resp = await fetch(`/api/representacoes?${params}`);
     const lista = await resp.json();
