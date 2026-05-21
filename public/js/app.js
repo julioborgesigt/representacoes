@@ -214,13 +214,14 @@ function renderPedidoFields(num, valores = []) {
 }
 
 function coletarPedidos() {
-    const num    = Number(document.getElementById('fNumPedidos').value);
     const pedidos = [];
-    for (let i = 0; i < num; i++) {
+    let i = 0;
+    while (document.getElementById(`fTipoPedido_${i}`)) {
         pedidos.push({
             tipo_pedido_id: document.getElementById(`fTipoPedido_${i}`).value,
             qtd_alvos:      Number(document.getElementById(`fAlvosPedido_${i}`).value) || 0,
         });
+        i++;
     }
     return pedidos;
 }
