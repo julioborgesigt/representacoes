@@ -21,6 +21,8 @@ async function init() {
     document.getElementById('btnConfirmarImport').addEventListener('click', confirmarImportacao);
     document.getElementById('btnFiltrar').addEventListener('click', carregarRepresentacoes);
     document.getElementById('btnLimpar').addEventListener('click', limparFiltros);
+    document.getElementById('fDataInicio').addEventListener('change', atualizarIntervalo);
+    document.getElementById('fDataFim').addEventListener('change', atualizarIntervalo);
     document.getElementById('btnNovo').addEventListener('click', abrirModalNovo);
     document.getElementById('btnCancelar').addEventListener('click', fecharModal);
     document.getElementById('btnFecharModal').addEventListener('click', fecharModal);
@@ -65,10 +67,27 @@ async function carregarDominios() {
     const resp = await fetch('/api/dominios');
     dominios = await resp.json();
 
+    // Crime: multi-select sem opção "Todos" (sem seleção = todos)
+    const fCrime = document.getElementById('fCrime');
+    fCrime.innerHTML = '';
+    dominios.crimes.forEach(({ id: val, nome }) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = nome;
+        fCrime.appendChild(opt);
+    });
+
+    // Status: mantém "Todos" e "Todos (menos concluídos)" do HTML, adiciona os do banco
+    const fStatus = document.getElementById('fStatus');
+    dominios.statusList.forEach(({ id: val, nome }) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = nome;
+        fStatus.appendChild(opt);
+    });
+
     preencherSelect('fVara',      dominios.varas);
-    preencherSelect('fCrime',     dominios.crimes);
     preencherSelect('fCidade',    dominios.cidades);
-    preencherSelect('fStatus',    dominios.statusList);
     preencherSelect('fVaraForm',  dominios.varas,      true);
     preencherSelect('fCrimeForm', dominios.crimes,      true);
     preencherSelect('fCidadeForm',dominios.cidades,     true);
@@ -151,22 +170,66 @@ function definirFiltrosIniciais() {
 
 function limparFiltros() {
     definirFiltrosIniciais();
-    ['fVara','fCrime','fCidade','fStatus'].forEach(id => {
+    ['fVara','fCidade','fStatus'].forEach(id => {
         document.getElementById(id).value = '';
     });
+    // Deseleciona todos os crimes
+    Array.from(document.getElementById('fCrime').options).forEach(o => o.selected = false);
+    // Limpa intervalo e reabilita ano/mês
+    document.getElementById('fDataInicio').value = '';
+    document.getElementById('fDataFim').value = '';
+    atualizarIntervalo();
     carregarRepresentacoes();
+}
+
+function atualizarIntervalo() {
+    const inicio = document.getElementById('fDataInicio').value;
+    const fim    = document.getElementById('fDataFim').value;
+    const ativo  = inicio || fim;
+    const fMes   = document.getElementById('fMes');
+    const fAno   = document.getElementById('fAno');
+
+    if (ativo) {
+        fMes.disabled = true;
+        fAno.disabled = true;
+        if (!fMes.querySelector('option[value="personalizado"]')) {
+            const opt = document.createElement('option');
+            opt.value = 'personalizado';
+            opt.textContent = 'Personalizado';
+            fMes.prepend(opt);
+        }
+        fMes.value = 'personalizado';
+    } else {
+        fMes.disabled = false;
+        fAno.disabled = false;
+        const opt = fMes.querySelector('option[value="personalizado"]');
+        if (opt) opt.remove();
+        fMes.value = '';
+    }
 }
 
 // ── Tabela ────────────────────────────────────────────────────────────────────
 async function carregarRepresentacoes() {
-    const params = new URLSearchParams({
-        ano:       document.getElementById('fAno').value    || '',
-        mes:       document.getElementById('fMes').value    || '',
-        vara_id:   document.getElementById('fVara').value   || '',
-        crime_id:  document.getElementById('fCrime').value  || '',
-        cidade_id: document.getElementById('fCidade').value || '',
-        status_id: document.getElementById('fStatus').value || '',
-    });
+    const params = new URLSearchParams();
+
+    // Intervalo de datas tem prioridade sobre ano/mês
+    const dataInicio = document.getElementById('fDataInicio').value;
+    const dataFim    = document.getElementById('fDataFim').value;
+    if (dataInicio || dataFim) {
+        if (dataInicio) params.set('data_inicio', dataInicio);
+        if (dataFim)    params.set('data_fim',    dataFim);
+    } else {
+        params.set('ano', document.getElementById('fAno').value || '');
+        params.set('mes', document.getElementById('fMes').value || '');
+    }
+
+    params.set('vara_id',   document.getElementById('fVara').value   || '');
+    params.set('cidade_id', document.getElementById('fCidade').value || '');
+    params.set('status_id', document.getElementById('fStatus').value || '');
+
+    // Crimes: múltipla seleção
+    Array.from(document.getElementById('fCrime').selectedOptions)
+        .forEach(o => params.append('crime_id', o.value));
 
     const resp = await fetch(`/api/representacoes?${params}`);
     const lista = await resp.json();

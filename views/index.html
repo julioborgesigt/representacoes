@@ -59,13 +59,21 @@
             <option value="11">Novembro</option><option value="12">Dezembro</option>
         </select>
     </div>
+    <div class="filtro-grupo filtro-intervalo">
+        <label>ou Intervalo</label>
+        <div class="intervalo-wrap">
+            <input type="date" id="fDataInicio" title="Data inicial">
+            <span class="intervalo-sep">—</span>
+            <input type="date" id="fDataFim" title="Data final">
+        </div>
+    </div>
     <div class="filtro-grupo">
         <label>Vara</label>
         <select id="fVara"><option value="">Todas</option></select>
     </div>
     <div class="filtro-grupo">
         <label>Crime</label>
-        <select id="fCrime"><option value="">Todos</option></select>
+        <select id="fCrime" multiple size="4"></select>
     </div>
     <div class="filtro-grupo">
         <label>Cidade</label>
@@ -73,7 +81,10 @@
     </div>
     <div class="filtro-grupo">
         <label>Situação</label>
-        <select id="fStatus"><option value="">Todos</option></select>
+        <select id="fStatus">
+            <option value="">Todos</option>
+            <option value="exceto_concluido">Todos (menos concluídos)</option>
+        </select>
     </div>
     <button id="btnFiltrar" class="btn btn-secondary">Filtrar</button>
     <button id="btnLimpar"  class="btn btn-ghost">Limpar</button>

@@ -6,22 +6,47 @@ const router = Router();
 
 // ── LISTAR com filtros ───────────────────────────────────────────────────────
 router.get('/representacoes', requireLogin, async (req, res) => {
-    const { ano, mes, vara_id, crime_id, cidade_id, status_id } = req.query;
+    const { ano, mes, vara_id, crime_id, cidade_id, status_id, data_inicio, data_fim } = req.query;
 
     const where  = [];
     const params = [];
 
-    if (ano && mes) {
+    // Intervalo de datas tem prioridade sobre ano/mês
+    if (data_inicio || data_fim) {
+        if (data_inicio) { where.push('r.data_envio >= ?'); params.push(data_inicio); }
+        if (data_fim)    { where.push('r.data_envio <= ?'); params.push(data_fim);    }
+    } else if (ano && mes) {
         where.push("DATE_FORMAT(r.data_envio, '%Y-%m') = ?");
         params.push(`${ano}-${String(mes).padStart(2, '0')}`);
     } else if (ano) {
         where.push('YEAR(r.data_envio) = ?');
         params.push(ano);
     }
+
     if (vara_id)   { where.push('r.vara_id = ?');   params.push(vara_id);   }
-    if (crime_id)  { where.push('r.crime_id = ?');  params.push(crime_id);  }
     if (cidade_id) { where.push('r.cidade_id = ?'); params.push(cidade_id); }
-    if (status_id) { where.push('r.status_id = ?'); params.push(status_id); }
+
+    // Crime: suporta múltiplos IDs
+    if (crime_id) {
+        const ids = [].concat(crime_id).filter(Boolean);
+        if (ids.length === 1) {
+            where.push('r.crime_id = ?');
+            params.push(ids[0]);
+        } else if (ids.length > 1) {
+            where.push(`r.crime_id IN (${ids.map(() => '?').join(',')})`);
+            params.push(...ids);
+        }
+    }
+
+    // Situação: valor especial para excluir concluídos
+    if (status_id) {
+        if (status_id === 'exceto_concluido') {
+            where.push("r.status_id != (SELECT id FROM status_pedido WHERE nome = 'Concluído')");
+        } else {
+            where.push('r.status_id = ?');
+            params.push(status_id);
+        }
+    }
 
     const clausula = where.length ? `WHERE ${where.join(' AND ')}` : '';
 

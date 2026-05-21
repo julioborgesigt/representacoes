@@ -137,6 +137,23 @@ body {
 .filtro-grupo { display: flex; flex-direction: column; gap: .25rem; }
 .filtro-grupo label  { font-size: .75rem; font-weight: 600; color: var(--muted); }
 .filtro-grupo select { padding: .35rem .5rem; border: 1px solid var(--border); border-radius: var(--radius); }
+.filtro-grupo select[multiple] { padding: .2rem; min-height: 88px; }
+
+.intervalo-wrap {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+}
+.intervalo-wrap input[type="date"] {
+    padding: .35rem .4rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: .8rem;
+    width: 128px;
+    background: #fff;
+}
+.intervalo-wrap input[type="date"]:disabled { opacity: .45; }
+.intervalo-sep { color: var(--muted); font-size: .85rem; flex-shrink: 0; }
 
 /* ── Tabela ───────────────────────────────────────────────────────────────── */
 .tabela-wrapper { overflow-x: auto; padding: .75rem 1rem; }
@@ -598,6 +615,10 @@ tr[data-status="Negado"]                 { background-color: #fff1f2; }
     .filtro-grupo select,
     .filtros .btn { width: 100%; }
     .filtros .btn-ghost { color: var(--muted); border-color: var(--border); }
+
+    /* Intervalo: datas em linha no mobile */
+    .intervalo-wrap { width: 100%; }
+    .intervalo-wrap input[type="date"] { flex: 1; width: auto; }
 
     /* Tabela: scroll horizontal no modo completo */
     .tabela-wrapper { padding: .5rem .75rem; }
